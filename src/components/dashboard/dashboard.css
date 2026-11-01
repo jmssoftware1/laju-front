@@ -1,0 +1,588 @@
+.dashboard-container {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: var(--font-sans);
+}
+
+/* 1. O Contentor dos 3 grupos — SEMPRE empilhados (Mercado / Bebidas / Particular),
+      nunca lado a lado, para cada grupo ter largura total da coluna e caber a tabela */
+.container-grupos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 2. Cada grupo individual (Estilo padrão) */
+.repor-grupo {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.repor-grupo-titulo {
+  margin-top: 0;
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Garante que o botão do WhatsApp fique com um espaço em relação à lista */
+.repor-grupo .btn-whatsapp {
+  margin-top: var(--space-4);
+}
+.dashboard-header {
+  background: var(--bg-surface);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-bottom: var(--header-border);
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  box-shadow: var(--shadow-sm);
+}
+.dashboard-header a,
+.dashboard-header button {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: var(--space-2);
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition-fast);
+}
+.dashboard-header a .material-symbols-outlined,
+.dashboard-header button .material-symbols-outlined {
+  font-size: 22px;
+}
+.dashboard-header a:hover {
+  color: var(--text-primary);
+}
+.dashboard-header a.active {
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+}
+.dashboard-header .logout {
+  color: var(--danger);
+}
+.dashboard-header .logout:hover {
+  color: #f87171;
+}
+
+.dashboard-main {
+  padding: var(--space-5);
+  max-width: 1240px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.dashboard-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+}
+.dashboard-top h2 {
+  margin: 0 0 4px;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.dashboard-sub {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.btn-refresh {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+.btn-refresh:hover:not(:disabled) {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-refresh:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.refresh-time {
+  font-size: 10px;
+  color: var(--text-disabled);
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.section-title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+/* ── KPI strip ── */
+.kpi-strip {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.kpi-total {
+  display: block;
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
+.kpi-strip-rest {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+}
+.kpi-strip-rest > a {
+  flex: 1 1 140px;
+  min-width: 120px;
+}
+
+.metric-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-top: 3px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+  transition:
+    transform 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+  cursor: pointer;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-muted);
+  box-shadow: var(--shadow-md);
+}
+.metric-card__icon .material-symbols-outlined {
+  font-size: 20px;
+}
+.metric-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.metric-card__label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-bold);
+}
+.metric-card__value {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+.metric-card__sub {
+  font-size: 10px;
+  color: var(--text-disabled);
+}
+
+/* Total: card maior, mais destaque */
+.kpi-total .metric-card {
+  padding: var(--space-5) var(--space-5);
+  border-top-width: 4px;
+}
+.kpi-total .metric-card__value {
+  font-size: 28px;
+}
+.kpi-total .metric-card__icon .material-symbols-outlined {
+  font-size: 26px;
+}
+
+/* Os 4 restantes: indicadores compactos, mesma info, menos peso visual */
+.kpi-strip-rest .metric-card {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
+  border-top: none;
+  border-left: 3px solid transparent;
+}
+.kpi-strip-rest .metric-card__icon .material-symbols-outlined {
+  font-size: 16px;
+}
+.kpi-strip-rest .metric-card__body {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+.kpi-strip-rest .metric-card__label {
+  order: 1;
+  font-size: 10px;
+}
+.kpi-strip-rest .metric-card__value {
+  order: 0;
+  font-size: var(--font-size-lg);
+}
+.kpi-strip-rest .metric-card__sub {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .kpi-strip {
+    flex-direction: column;
+  }
+  .kpi-total {
+    min-width: 0;
+    width: 100%;
+  }
+  .kpi-strip-rest > a {
+    flex: 1 1 45%;
+  }
+}
+
+/* ── Layout principal em duas colunas (Para repor / Monitoramento) ── */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 7fr 3fr;
+  }
+}
+
+.dashboard-col-main,
+.dashboard-col-side {
+  min-width: 0;
+}
+
+.monitoramento-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.monitoramento-panel .atencao-details {
+  margin-top: 0;
+}
+
+.monitoramento-panel .urgencia-lista {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+@media (min-width: 900px) {
+  .dashboard-col-side {
+    position: sticky;
+    top: var(--space-5);
+  }
+}
+
+/* Cabeçalho de colunas (labels) dos grupos "Para repor" — só desktop, dado tabular */
+.repor-grupo-cols {
+  display: none;
+}
+@media (min-width: 640px) {
+  .repor-grupo-cols {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 0.9fr 1.3fr 1fr;
+    gap: var(--space-3);
+    padding: 0 14px 6px;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-disabled);
+    border-bottom: 1px solid var(--border-default);
+    margin-bottom: var(--space-2);
+  }
+}
+
+/* ── Urgência / WhatsApp ── */
+.urgencia-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.urgencia-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  background: var(--danger);
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  padding: 0 6px;
+  margin-left: var(--space-2);
+}
+
+.whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--success);
+  color: var(--bg-page);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 9px 16px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.whatsapp-btn:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+.whatsapp-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.urgencia-vazia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 28px var(--space-4);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+.urgencia-vazia .material-symbols-outlined {
+  font-size: 34px;
+}
+.urgencia-vazia p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.urgencia-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.urgencia-item {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* Linhas dos grupos "Para repor": colunas alinhadas tipo tabela (desktop) */
+@media (min-width: 640px) {
+  .container-grupos .urgencia-item {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr 0.9fr 1.3fr 1fr;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .container-grupos .urgencia-item > * {
+    min-width: 0;
+  }
+}
+
+.urgencia-item__nome {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+}
+.urgencia-item__cat {
+  font-size: 11px;
+  color: var(--text-disabled);
+  overflow-wrap: break-word;
+}
+
+/* Linhas compactas (painel de Monitoramento): mantêm o agrupamento info/direita */
+.urgencia-item--compact {
+  align-items: flex-start;
+}
+.urgencia-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.urgencia-item__direita {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.urgencia-badge {
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  padding: 2px 9px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.urgencia-item__compra {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  overflow-wrap: break-word;
+}
+.urgencia-item__compra strong {
+  color: var(--primary);
+}
+.urgencia-item__atual {
+  font-size: 11px;
+  color: var(--text-disabled);
+  overflow-wrap: break-word;
+}
+.urgencia-item__atual strong {
+  color: var(--warning);
+}
+
+/* ── Detalhes atenção (painel Monitoramento) ── */
+.atencao-details {
+  margin-top: 0;
+}
+.atencao-details summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+  padding: 12px 14px;
+  background: var(--bg-surface-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-muted);
+  list-style: none;
+}
+.atencao-details summary::-webkit-details-marker {
+  display: none;
+}
+.atencao-details summary .material-symbols-outlined.atencao-icon {
+  color: var(--warning);
+  font-size: 18px;
+}
+.atencao-details summary .atencao-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 20px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+}
+.atencao-details[open] summary .atencao-count-pill--active {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.atencao-details summary .atencao-chevron {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 18px;
+  transition: transform var(--transition-fast);
+}
+.atencao-details[open] summary .atencao-chevron {
+  transform: rotate(180deg);
+}
+
+/* Estado vazio elegante do Monitoramento */
+.monitoramento-vazio {
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) 14px;
+}
+.monitoramento-vazio .material-symbols-outlined {
+  color: var(--success);
+  font-size: 18px;
+  margin-top: 1px;
+}
+.monitoramento-vazio strong {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-bold);
+}
+.monitoramento-vazio span {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}

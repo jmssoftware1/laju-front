@@ -1,0 +1,232 @@
+/* ═══════════════════════════════════════════════════════════════════
+   ScanStock — Design Tokens
+   Identidade: Dark Navy + Blue Corporativo (ERP / SaaS profissional)
+   Importar em main.tsx: import './styles/global.css'
+   Uso:  background: var(--bg-page);
+         color: var(--primary);
+
+   NOTA DE COMPATIBILIDADE:
+   As variáveis legadas (--accent, --entrada, --saida, --btn-primary-*,
+   --header-border, etc.) foram mantidas de propósito e agora apontam
+   para os novos tokens. Isso garante que qualquer componente que ainda
+   não foi atualizado nesta etapa (Login, Cadastro, Estoque, Dashboard,
+   Admin, Perfil) e que referencia essas variáveis via CSS ou inline
+   style continue funcionando e já herde a nova identidade visual,
+   sem que seus arquivos precisem ser tocados.
+═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Fundos ── */
+  --bg-page:            #0b1120;   /* fundo geral de todas as páginas   */
+  --bg-surface:         #111827;   /* cards, header, dialog             */
+  --bg-surface-elevated:#161f33;   /* modais, dropdowns, popovers       */
+  --bg-input:           #0f1729;   /* fundo específico de inputs        */
+  --bg-hover:           #1c2740;   /* hover em itens de lista           */
+
+  /* ── Bordas ── */
+  --border-default: #232f4a;   /* bordas subtis                     */
+  --border-muted:   #2d3b5c;   /* bordas um pouco mais visíveis     */
+
+  /* ── Texto ── */
+  --text-primary:   #e8ecf6;   /* títulos, valores principais       */
+  --text-secondary: #a9b4cc;   /* subtítulos, labels                */
+  --text-muted:     #71809e;   /* metadados, datas, operador        */
+  --text-disabled:  #4a5570;   /* hints, placeholders               */
+
+  /* ── Cor primária (azul corporativo) ── */
+  --primary:        #3b82f6;
+  --primary-hover:  #2563eb;
+  --primary-bg:     #132242;                     /* fundo de estado ativo/selecionado */
+  --primary-border: rgba(59, 130, 246, 0.33);
+
+  /* ── Estados de movimento / feedback ── */
+  --success:        #22c55e;   /* ENTRADA / sucesso                 */
+  --success-bg:     #132a1c;
+  --success-border: rgba(34, 197, 94, 0.25);
+
+  --danger:         #ef4444;   /* SAÍDA / erro                      */
+  --danger-bg:      #2a1414;
+  --danger-border:  rgba(239, 68, 68, 0.25);
+
+  --warning:        #f5b400;   /* somente alertas/avisos            */
+  --warning-bg:     #2b230f;
+  --warning-border: rgba(245, 180, 0, 0.25);
+
+  --info:           #38bdf8;
+  --info-bg:        #0f2436;
+
+  /* ── Botões ── */
+  --btn-primary-bg:    var(--primary);
+  --btn-primary-color: #ffffff;
+  --btn-primary-hover: var(--primary-hover);
+  --btn-danger-bg:     var(--danger);
+  --btn-danger-color:  #ffffff;
+
+  /* ── Estrutura ── */
+  --header-border:  1px solid var(--border-default);
+  --radius-sm:      4px;
+  --radius-md:      6px;
+  --radius-lg:      10px;
+
+  /* ── Sombras ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+
+  /* ── Foco acessível ── */
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.35);
+
+  /* ── Tipografia ── */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-size-xs:   12px;
+  --font-size-sm:   13px;
+  --font-size-base: 14px;
+  --font-size-lg:   16px;
+  --font-size-xl:   20px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold:   600;
+
+  /* ── Espaçamentos ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* ── Transições ── */
+  --transition-fast: 0.2s ease;
+
+  /* ── Aliases legados (compatibilidade com componentes ainda não migrados) ── */
+  --accent:         var(--primary);
+  --accent-dark:    var(--primary-hover);
+  --accent-bg:      var(--bg-page);
+  --accent-border:  var(--border-default);
+  --accent-input:   var(--bg-input);
+
+  --entrada:        var(--success);
+  --entrada-bg:     var(--success-bg);
+  --entrada-border: var(--success-border);
+
+  --saida:          var(--danger);
+  --saida-bg:       var(--danger-bg);
+  --saida-border:   var(--danger-border);
+}
+
+/* ── Reset mínimo ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+}
+
+a {
+  color: var(--primary);
+}
+a:hover {
+  color: var(--primary-hover);
+}
+
+/* Foco acessível e consistente em toda a aplicação */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Utilitários reutilizáveis em todas as páginas ─────────────── */
+
+/* Header */
+.ss-header {
+  background: var(--bg-surface);
+  padding: var(--space-4);
+  display: flex;
+  justify-content: space-around;
+  border-bottom: var(--header-border);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  box-shadow: var(--shadow-sm);
+}
+.ss-header a,
+.ss-header button {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-lg);
+  padding: var(--space-1) var(--space-2);
+  transition: color var(--transition-fast);
+}
+.ss-header a:hover        { color: var(--text-primary); }
+.ss-header a.active       { color: var(--primary); border-bottom: 2px solid var(--primary); }
+.ss-header button.logout  { color: var(--danger); }
+.ss-header button.logout:hover { color: #f87171; }
+
+/* Botões */
+.ss-btn {
+  padding: 12px 25px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-color);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+.ss-btn:hover:not(:disabled)     { background: var(--btn-primary-hover); }
+.ss-btn:disabled                  { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.ss-btn.danger                    { background: var(--btn-danger-bg); color: var(--btn-danger-color); }
+.ss-btn.danger:hover:not(:disabled) { background: #f87171; }
+.ss-btn.secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  box-shadow: none;
+}
+.ss-btn.secondary:hover:not(:disabled) { background: var(--primary-bg); }
+
+/* Input wrapper */
+.ss-input-wrapper { margin: var(--space-3) 0; text-align: left; }
+.ss-input-wrapper label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-1);
+  font-weight: var(--font-weight-medium);
+}
+.ss-input-wrapper input,
+.ss-input-wrapper select {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-muted);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.ss-input-wrapper input:focus,
+.ss-input-wrapper select:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+}
+.ss-input-wrapper input:disabled,
+.ss-input-wrapper select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

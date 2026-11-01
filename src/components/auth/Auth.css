@@ -1,0 +1,147 @@
+/* ── Página de autenticação ───────────────────────────────────────────────── */
+
+body { margin: 0; padding: 0; background: var(--bg-page); }
+
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+  background: var(--bg-page);
+  font-family: sans-serif;
+}
+
+/* ── Card central ─────────────────────────────────────────────────────────── */
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 36px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ── Logo ─────────────────────────────────────────────────────────────────── */
+
+.auth-logo {
+  width: 56px; height: 56px;
+  background: var(--primary);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+.auth-logo .material-symbols-outlined { font-size: 30px; color: var(--btn-primary-color); }
+
+.auth-title {
+  font-size: 20px; font-weight: bold;
+  color: var(--text-primary); margin: 0 0 4px; text-align: center;
+}
+.auth-subtitle {
+  font-size: 13px; color: var(--text-secondary);
+  margin: 0 0 28px; text-align: center;
+}
+
+/* ── Inputs ───────────────────────────────────────────────────────────────── */
+
+.auth-field { width: 100%; margin-bottom: 14px; }
+.auth-field label {
+  display: block; font-size: 12px; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 7px;
+}
+.auth-field input {
+  width: 100%; padding: 12px 14px;
+  background: var(--bg-input); border: 1px solid var(--border-default);
+  border-radius: 10px; color: var(--text-primary);
+  font-size: 15px; outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.auth-field input:focus { border-color: var(--focus-ring); }
+.auth-field input::placeholder { color: var(--text-muted); }
+
+/* ── PIN boxes ────────────────────────────────────────────────────────────── */
+
+.pin-label {
+  font-size: 12px; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 10px;
+  width: 100%; text-align: left;
+}
+
+.pin-wrapper {
+  display: flex; gap: 10px;
+  justify-content: center;
+  cursor: text; position: relative;
+  margin-bottom: 6px;
+}
+
+.pin-hidden {
+  position: absolute; opacity: 0;
+  width: 0; height: 0; pointer-events: none;
+}
+
+.pin-box {
+  width: 60px; height: 64px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-default);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: var(--primary);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.pin-box--filled {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+}
+.pin-box--active {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.pin-match {
+  font-size: 12px; margin: 6px 0 0;
+  text-align: center; width: 100%;
+}
+.pin-match--ok  { color: var(--success); }
+.pin-match--err { color: var(--danger); }
+
+/* ── Botões ───────────────────────────────────────────────────────────────── */
+
+.auth-btn {
+  width: 100%; padding: 13px;
+  background: var(--btn-primary-bg); color: var(--btn-primary-color);
+  border: none; border-radius: 10px;
+  font-size: 15px; font-weight: bold;
+  cursor: pointer; margin-top: 20px;
+  transition: background 0.2s, opacity 0.2s;
+}
+.auth-btn:hover:not(:disabled) { background: var(--btn-primary-hover); }
+.auth-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.auth-btn-sec {
+  width: 100%; padding: 12px;
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid var(--border-default); border-radius: 10px;
+  font-size: 14px; font-weight: bold;
+  cursor: pointer; margin-top: 10px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.auth-btn-sec:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── Erro ─────────────────────────────────────────────────────────────────── */
+
+.auth-erro {
+  width: 100%; padding: 10px 12px;
+  background: var(--danger-bg); border: 1px solid var(--danger-border);
+  border-radius: 8px; color: var(--danger);
+  font-size: 12px; text-align: center;
+  margin-top: 12px;
+}

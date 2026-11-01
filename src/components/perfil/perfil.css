@@ -1,0 +1,223 @@
+/* ── Container ────────────────────────────────────────────────────────────── */
+
+.perfil-container {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  min-height: 100vh;
+  font-family: var(--font-sans);
+}
+
+/* ── Header — idêntico ao Scanner/Estoque ─────────────────────────────────── */
+header {
+  background: var(--bg-surface);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-bottom: var(--header-border);
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  box-shadow: var(--shadow-sm);
+}
+header a,
+header button.logout {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  padding: var(--space-2);
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition-fast);
+}
+header a .material-symbols-outlined,
+header button .material-symbols-outlined {
+  font-size: 22px;
+}
+header a:hover {
+  color: var(--text-primary);
+}
+header a.active {
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+}
+header button.logout {
+  color: var(--danger);
+}
+header button.logout:hover {
+  color: #f87171;
+}
+
+
+/* ── Main ─────────────────────────────────────────────────────────────────── */
+
+.perfil-main {
+  padding: 24px 16px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ── Avatar section ───────────────────────────────────────────────────────── */
+
+.perfil-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.perfil-avatar {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  border: 3px solid var(--primary);
+  background: var(--primary-bg);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.perfil-avatar:hover { border-color: var(--primary-hover); }
+
+.perfil-avatar__img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.perfil-avatar__inicial {
+  font-size: 40px; font-weight: bold; color: var(--primary);
+}
+
+.perfil-avatar__overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s;
+  border-radius: 50%;
+}
+.perfil-avatar:hover .perfil-avatar__overlay { opacity: 1; }
+.perfil-avatar__overlay .material-symbols-outlined { font-size: 28px; color: var(--primary); }
+
+.perfil-foto-actions {
+  display: flex; gap: 8px;
+}
+
+.perfil-foto-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg-surface); border: 1px solid var(--border-default);
+  border-radius: 8px; color: var(--text-muted);
+  font-size: 12px; font-weight: bold;
+  padding: 7px 14px; cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.perfil-foto-btn .material-symbols-outlined { font-size: 16px; }
+.perfil-foto-btn:hover { border-color: var(--primary); color: var(--primary); }
+.perfil-foto-btn--remove:hover { border-color: var(--danger); color: var(--danger); }
+
+/* ── Card de informações ──────────────────────────────────────────────────── */
+
+.perfil-card {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 0.5px solid var(--border-default);
+}
+
+.perfil-card__title {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-muted); margin-bottom: 18px;
+}
+.perfil-card__title .material-symbols-outlined { font-size: 16px; }
+
+/* ── Campos ───────────────────────────────────────────────────────────────── */
+
+.perfil-field { margin-bottom: 14px; }
+.perfil-field:last-child { margin-bottom: 0; }
+
+.perfil-field label {
+  display: block;
+  font-size: 11px; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 7px;
+}
+
+.perfil-field input {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg-input); border: 1px solid var(--border-muted);
+  border-radius: 9px; color: var(--text-primary);
+  font-size: 14px; outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.perfil-field input:focus       { border-color: var(--focus-ring); }
+.perfil-field input::placeholder { color: var(--text-disabled); }
+
+.perfil-input--readonly {
+  color: var(--text-disabled) !important;
+  cursor: default !important;
+  border-color: var(--border-muted) !important;
+}
+.perfil-input--readonly:focus { border-color: var(--border-muted) !important; }
+
+/* ── Botão guardar ────────────────────────────────────────────────────────── */
+
+.perfil-save-btn {
+  width: 100%; padding: 13px;
+  background: var(--primary); color: var(--btn-primary-color);
+  border: none; border-radius: 10px;
+  font-size: 15px; font-weight: bold;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 0.2s, opacity 0.2s;
+}
+.perfil-save-btn:hover:not(:disabled) { background: var(--primary-hover); }
+.perfil-save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.perfil-save-btn .material-symbols-outlined { font-size: 20px; }
+
+/* ── Movimentações do perfil ─────────────────────────────────────────────── */
+.perfil-mov-item {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-muted);
+}
+.perfil-mov-item:last-child { border-bottom: none; }
+
+.perfil-mov-bar {
+  width: 3px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.perfil-mov-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.perfil-mov-nome {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+.perfil-mov-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.perfil-mov-hora {
+  font-size: 11px;
+  color: var(--text-muted);
+}
