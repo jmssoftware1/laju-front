@@ -5,6 +5,7 @@ import {api} from "../../utils/axios";
 import {useAuth} from "../../context/AuthContext";
 import "./V6.css";
 import "./V8.css";
+import "./MobileFix.css";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
@@ -128,7 +129,7 @@ export default function LajuStoreV6(){
  };
  const go=(target:Tab)=>{
   setNotice("");setError("");setTab(target);setNavOpen(false);
-  window.scrollTo({top:0,behavior:"instant"});
+  window.scrollTo({top:0,behavior:"auto"});
  };
  const beginEditProduct=(p:Product)=>{
   setEditProduct(p);setProdName(p.nome);setProdCategory(p.categoria||"");setProdDesc(p.descricao||"");
