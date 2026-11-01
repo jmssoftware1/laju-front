@@ -16,7 +16,7 @@ type Entry = {id:number;tipo:"entrada"|"saida";categoria:string;descricao:string
 type User = {id:number;nome:string;role:"gestor"|"funcionario";ativo:boolean};
 type Movement = {id:number;criado_em:string;nome:string;sku:string;tamanho:string;cor:string;diferenca:number;motivo:string};
 type Report = {de:string;ate:string;totais:{vendas:number;bruto:string;descontos:string;faturamento:number;lucro_estimado:number};canais:{canal:string;vendas:number;total:string}[];maisVendidos:{nome:string;tamanho:string;cor:string;pecas:number}[];dias:{dia:string;vendas:number;bruto:string}[];nota:string};
-type Dashboard = {produtos:number;pecas:number;alertas:number;vendas_hoje:number;faturamento_hoje:number;top:{nome:string;pecas:number}[]};
+type Dashboard = {produtos:number;pecas:number;alertas:number;vendas_hoje:number;faturamento_hoje:number;lucro_hoje_estimado:number;top:{nome:string;pecas:number}[]};
 type CartItem = {id:number;nome:string;sku:string;quantidade:number;preco:number};
 
 const cash=(v:unknown)=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
@@ -183,7 +183,7 @@ export default function LajuStoreV6(){
 
    {tab==="inicio"&&<div className="lz-content">
     <section className="lz-metrics">
-     {[{icon:"▤",title:"Peças disponíveis",value:dashboard?.pecas??"—",sub:"Quantidade em estoque"},{icon:"◈",title:"Produtos ativos",value:dashboard?.produtos??"—",sub:"Modelos cadastrados"},{icon:"▥",title:"Vendas hoje",value:dashboard?.vendas_hoje??"—",sub:"Vendas concluídas"},{icon:"R$",title:"Faturamento hoje",value:dashboard?cash(dashboard.faturamento_hoje):"—",sub:"Receita de vendas"}].map(m=><article className="lz-metric" key={m.title}><span className="lz-metric-icon">{m.icon}</span><small>{m.title}</small><strong>{m.value}</strong><p>{m.sub}</p></article>)}
+     {[{icon:"▤",title:"Peças disponíveis",value:dashboard?.pecas??"—",sub:"Quantidade em estoque"},{icon:"◈",title:"Produtos ativos",value:dashboard?.produtos??"—",sub:"Modelos cadastrados"},{icon:"▥",title:"Vendas hoje",value:dashboard?.vendas_hoje??"—",sub:"Vendas concluídas"},{icon:"R$",title:"Faturamento hoje",value:dashboard?cash(dashboard.faturamento_hoje):"—",sub:"Receita de vendas"},{icon:"↗",title:"Lucro estimado hoje",value:dashboard?cash(dashboard.lucro_hoje_estimado):"—",sub:"Margem das peças, antes das despesas"}].map(m=><article className="lz-metric" key={m.title}><span className="lz-metric-icon">{m.icon}</span><small>{m.title}</small><strong>{m.value}</strong><p>{m.sub}</p></article>)}
     </section>
     <div className="lz-two">
      <section className="lz-panel"><div className="lz-section-head"><h2>Estoque em atenção</h2><span className="lz-chip">Reposição</span></div>
