@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/alerts/ToastContext";
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro("");
-    if (pin.length < 10) {
+    if (!nome.trim() || pin.length < 10) {
       setErro("Informe a senha (mínimo de 10 caracteres).");
       return;
     }
@@ -67,15 +67,19 @@ const Login: React.FC = () => {
             />
           </div>
 
-          <p className="pin-label">senha de acesso</p>
-          <input type="password" autoComplete="current-password" minLength={10} value={pin} onChange={e => setPin(e.target.value)} disabled={carregando} required />
+          <div className="auth-field">
+            <label htmlFor="input-senha">Senha de acesso</label>
+            <input id="input-senha" type="password" autoComplete="current-password" minLength={10}
+              placeholder="Digite sua senha" value={pin} onChange={e => setPin(e.target.value)}
+              disabled={carregando} required />
+          </div>
 
           {erro && <div className="auth-erro">{erro}</div>}
 
           <button
             type="submit"
             className="auth-btn"
-            disabled={carregando || pin.length < 10}
+            disabled={carregando || !nome.trim() || pin.length < 10}
           >
             {carregando ? "Entrando..." : "Entrar no Sistema"}
           </button>
