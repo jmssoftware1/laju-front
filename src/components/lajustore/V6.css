@@ -22,3 +22,14 @@
 @media(max-width:1180px){.lz-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.lz-two{grid-template-columns:1fr}.lz-form-wide{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.lz-shell{display:block}.lz-sidebar{position:relative;width:100%;height:auto;padding:15px 14px 12px;gap:8px}.lz-brand{padding:0 5px 8px}.lz-brand strong{font-size:19px}.lz-brand-mark{font-size:25px}.lz-side-label{display:none}.lz-sidebar nav{display:flex;overflow-x:auto;gap:5px;padding-bottom:7px}.lz-sidebar nav button{white-space:nowrap;padding:11px 12px;font-size:12px}.lz-side-bottom{display:none}.lz-main{padding:23px 15px 45px}.lz-top{align-items:flex-start}.lz-top-right{flex-direction:column;align-items:flex-end;gap:8px}.lz-top p{max-width:280px}.lz-panel{padding:19px}.lz-metrics{gap:10px}.lz-metric{min-height:130px;padding:15px}.lz-metric-icon{margin-bottom:10px;width:35px;height:35px}.lz-metrics.lz-three{grid-template-columns:1fr}.lz-form-wide{grid-template-columns:1fr}.lz-form-wide .lz-span-2{grid-column:auto}}
 @media(max-width:450px){.lz-form{grid-template-columns:1fr}.lz-form .lz-span-2{grid-column:auto}.lz-top{flex-direction:column}.lz-top-right{flex-direction:row;align-items:center}.lz-section-head{align-items:stretch}.lz-search{max-width:none;width:100%}}
+
+/* LajuStore V7 — filtros, ações de pedidos e formulário de variações */
+.lz-filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 18px}
+.lz-filters .lz-search{flex:1;min-width:180px}
+.lz-filters select,.lz-payment-select select{height:43px;border:1px solid #ded8e8;border-radius:9px;background:white;color:#262137;padding:8px 12px}
+.lz-filters select{min-width:175px}
+.lz-check{display:inline-flex;gap:8px;align-items:center;white-space:nowrap;font-size:12px;color:#655b77;font-weight:650}
+.lz-check input{accent-color:#754cb8;width:17px;height:17px}
+.lz-payment-select{display:flex;flex-wrap:wrap;gap:7px;align-items:center;color:#615a70;font-size:12px;font-weight:700}
+.lz-table-wrap .lz-link{white-space:nowrap}
+@media(max-width:650px){.lz-filters{display:grid;grid-template-columns:1fr}.lz-filters .lz-search{max-width:none;width:100%}.lz-filters select{width:100%}.lz-payment-select{width:100%;justify-content:flex-start}}
