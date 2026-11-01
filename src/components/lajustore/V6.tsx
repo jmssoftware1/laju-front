@@ -56,11 +56,17 @@ export default function LajuStoreV6(){
  const manager=operador?.role==="gestor";
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [navOpen,setNavOpen]=useState(false);
+ const [stockMobileView,setStockMobileView]=useState<"lista"|"cadastro">("lista");
  useEffect(()=>{
   if(!navOpen)return;
   const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==="Escape")setNavOpen(false);};
   document.addEventListener("keydown",closeOnEscape);
-  return ()=>document.removeEventListener("keydown",closeOnEscape);
+  const previousOverflow=document.body.style.overflow;
+  document.body.style.overflow="hidden";
+  return ()=>{
+   document.removeEventListener("keydown",closeOnEscape);
+   document.body.style.overflow=previousOverflow;
+  };
  },[navOpen]);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const [products,setProducts]=useState<Product[]>([]),[clients,setClients]=useState<Client[]>([]),[orders,setOrders]=useState<Order[]>([]);
@@ -120,7 +126,19 @@ export default function LajuStoreV6(){
   try{await task();setNotice(success);await refresh();}
   catch(e){setError(errorMessage(e));}finally{setBusy(false);}
  };
- const go=(target:Tab)=>{setNotice("");setError("");setTab(target);setNavOpen(false);};
+ const go=(target:Tab)=>{
+  setNotice("");setError("");setTab(target);setNavOpen(false);
+  window.scrollTo({top:0,behavior:"instant"});
+ };
+ const beginEditProduct=(p:Product)=>{
+  setEditProduct(p);setProdName(p.nome);setProdCategory(p.categoria||"");setProdDesc(p.descricao||"");
+  setProdPrice(p.preco);setProdCost(p.custo||"");setStockMobileView("cadastro");
+  window.scrollTo({top:0,behavior:"smooth"});
+ };
+ const beginEditVariant=(v:Variant)=>{setVariantEdit({...v});setStockMobileView("lista");};
+ useEffect(()=>{
+  if(variantEdit && tab==="estoque")document.getElementById("lz-variant-editor")?.scrollIntoView({behavior:"smooth",block:"start"});
+ },[variantEdit,tab]);
  const variants=useMemo(()=>products.flatMap(p=>p.variantes.map(v=>({...v,produto:p.nome,preco:Number(p.preco),custo:Number(p.custo||0)}))),[products]);
  const cartTotal=cart.reduce((s,i)=>s+i.quantidade*i.preco,0);
  const pendingShown=pendentes.filter(p=>pendingFilter==="todos"||p.canal===pendingFilter);
@@ -156,15 +174,15 @@ export default function LajuStoreV6(){
 
  const addProduct=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
   await api.post("/api/v6/produtos",{nome:prodName,categoria:prodCategory,descricao:prodDesc,preco:prodPrice,custo:prodCost||null,variantes:[{sku,tamanho:size,cor:color,quantidade:Number(quantity),minimo:Number(minQty)}]});
-  setProdName("");setColor("");setSku("");setQuantity("0");
+  setProdName("");setColor("");setSku("");setQuantity("0");setStockMobileView("lista");
  },"Roupa cadastrada no estoque.")};
  const addVariant=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
   await api.post(`/api/v6/produtos/${newVariantProduct}/variantes`,{sku,tamanho:size,cor:color,quantidade:Number(quantity),minimo:Number(minQty)});
-  setSku("");setColor("");setQuantity("0");
+  setSku("");setColor("");setQuantity("0");setStockMobileView("lista");
  },"Nova variação cadastrada.")};
  const saveProduct=(e:FormEvent)=>{e.preventDefault();if(!editProduct)return;void run(async()=>{
   await api.patch(`/api/v6/produtos/${editProduct.id}`,{nome:prodName,categoria:prodCategory,descricao:prodDesc,preco:prodPrice,custo:prodCost||null,ativo:true});
-  setEditProduct(null);setProdName("");
+  setEditProduct(null);setProdName("");setStockMobileView("lista");
  },"Produto atualizado.")};
  const adjust=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
   await api.post(`/api/v6/variantes/${adjustVariant}/ajuste`,{diferenca:Number(adjustQty),motivo:adjustReason});
@@ -290,8 +308,16 @@ export default function LajuStoreV6(){
     </div>
    </div>}
 
-   {tab==="estoque"&&<div className="lz-content">
-    <div className="lz-two">
+   {tab==="estoque"&&<div className={`lz-content lz-stock-section lz-stock-${stockMobileView}`}>
+    <div className="lz-mobile-stock-toggle" role="group" aria-label="Visualização do estoque">
+     <button type="button" className={stockMobileView==="lista"?"active":""} aria-pressed={stockMobileView==="lista"} onClick={()=>{setStockMobileView("lista");setVariantEdit(null);}}>
+      <span className="material-symbols-outlined" aria-hidden="true">inventory_2</span> Roupas cadastradas
+     </button>
+     <button type="button" className={stockMobileView==="cadastro"?"active":""} aria-pressed={stockMobileView==="cadastro"} onClick={()=>setStockMobileView("cadastro")}>
+      <span className="material-symbols-outlined" aria-hidden="true">add_circle</span> Cadastrar / ajustar
+     </button>
+    </div>
+    <div className="lz-two lz-stock-edit-area">
      <section className="lz-panel"><h2>{editProduct?"Editar produto":"Cadastrar roupa"}</h2><p>Sem fotos. Cada tamanho/cor tem seu próprio código e quantidade.</p>
       <form className="lz-form" onSubmit={editProduct?saveProduct:addProduct}>
        <label className="lz-span-2">Nome da roupa<input required value={prodName} onChange={e=>setProdName(e.target.value)} placeholder="Ex.: Blusa canelada"/></label>
@@ -323,7 +349,7 @@ export default function LajuStoreV6(){
        <button className="lz-btn" disabled={busy}>Registrar movimentação</button></form></section>}
      </div>
     </div>
-    <section className="lz-panel"><div className="lz-section-head"><h2>Roupas cadastradas</h2>
+    <section className="lz-panel lz-stock-list-panel"><div className="lz-section-head"><h2>Roupas cadastradas</h2>
      <button type="button" className="lz-btn lz-outline" onClick={exportStock}>Exportar estoque CSV</button>
      </div>
      <div className="lz-filters">
@@ -333,12 +359,31 @@ export default function LajuStoreV6(){
       </select>
       <label className="lz-check"><input type="checkbox" checked={onlyLow} onChange={e=>setOnlyLow(e.target.checked)}/> Apenas estoque baixo</label>
      </div>
-     <div className="lz-table-wrap"><table><thead><tr><th>Produto / SKU</th><th>Categoria</th><th>Tamanho / cor</th><th>Preço</th><th>Saldo</th>{manager&&<th>Ação</th>}</tr></thead>
-      <tbody>{filteredRows.map(({p,v})=><tr key={v.id}><td><strong>{p.nome}</strong><small>{v.sku}</small></td><td>{p.categoria||"—"}</td><td>{v.tamanho} · {v.cor}</td><td>{cash(p.preco)}</td><td><span className={v.quantidade<=v.minimo?"lz-danger":"lz-good"}>{v.quantidade} peças</span></td>{manager&&<td><button className="lz-link" onClick={()=>{setEditProduct(p);setProdName(p.nome);setProdCategory(p.categoria||"");setProdDesc(p.descricao||"");setProdPrice(p.preco);setProdCost(p.custo||"");window.scrollTo({top:0,behavior:"smooth"});}}>Produto</button>
-       <button className="lz-link" onClick={()=>setVariantEdit({...v})}>Variação</button></td>}</tr>)}
+     <div className="lz-table-wrap lz-stock-table"><table><thead><tr><th>Produto / SKU</th><th>Categoria</th><th>Tamanho / cor</th><th>Preço</th><th>Saldo</th>{manager&&<th>Ação</th>}</tr></thead>
+      <tbody>{filteredRows.map(({p,v})=><tr key={v.id}><td><strong>{p.nome}</strong><small>{v.sku}</small></td><td>{p.categoria||"—"}</td><td>{v.tamanho} · {v.cor}</td><td>{cash(p.preco)}</td><td><span className={v.quantidade<=v.minimo?"lz-danger":"lz-good"}>{v.quantidade} peças</span></td>{manager&&<td><button className="lz-link" onClick={()=>beginEditProduct(p)}>Produto</button>
+       <button className="lz-link" onClick={()=>beginEditVariant(v)}>Variação</button></td>}</tr>)}
       {filteredRows.length===0&&<tr><td colSpan={6} className="lz-empty">Nenhuma roupa encontrada.</td></tr>}</tbody></table></div>
+     <div className="lz-mobile-stock-cards" aria-label="Lista de roupas cadastradas">
+      {filteredRows.length===0?<p className="lz-stock-no-items">Nenhuma roupa encontrada. Toque em "Cadastrar / ajustar" para começar.</p>:
+       filteredRows.map(({p,v})=><article className="lz-stock-card" key={v.id}>
+        <div className="lz-stock-card-top">
+         <div><h3>{p.nome}</h3><small>{p.categoria||"Sem categoria"} · SKU {v.sku}</small></div>
+         <span className={v.quantidade<=v.minimo?"lz-stock-card-count is-low":"lz-stock-card-count"}>{v.quantidade} {v.quantidade===1?"peça":"peças"}</span>
+        </div>
+        <div className="lz-stock-card-details">
+         <span><small>Tamanho</small><strong>{v.tamanho}</strong></span>
+         <span><small>Cor</small><strong>{v.cor}</strong></span>
+         <span><small>Preço</small><strong>{cash(p.preco)}</strong></span>
+         <span><small>Mínimo</small><strong>{v.minimo}</strong></span>
+        </div>
+        {manager&&<div className="lz-stock-card-actions">
+         <button type="button" onClick={()=>beginEditProduct(p)}><span className="material-symbols-outlined" aria-hidden="true">edit_note</span> Editar produto</button>
+         <button type="button" onClick={()=>beginEditVariant(v)}><span className="material-symbols-outlined" aria-hidden="true">tune</span> Tamanho / cor</button>
+        </div>}
+       </article>)}
+     </div>
     </section>
-    {manager&&variantEdit&&<section className="lz-panel">
+    {manager&&variantEdit&&<section id="lz-variant-editor" className="lz-panel lz-stock-variant-editor">
      <h2>Editar variação — {variantEdit.id}</h2>
      <p>Atualize o código, tamanho, cor e estoque mínimo. Para alterar a quantidade, utilize uma movimentação de estoque.</p>
      <form className="lz-form lz-form-wide" onSubmit={saveVariantEdit}>
@@ -350,7 +395,7 @@ export default function LajuStoreV6(){
       <button type="button" className="lz-btn lz-outline" onClick={()=>setVariantEdit(null)}>Cancelar</button>
      </form>
     </section>}
-    <section className="lz-panel"><h2>Últimas movimentações</h2><div className="lz-table-wrap"><table><thead><tr><th>Data</th><th>Peça</th><th>Quantidade</th><th>Motivo</th></tr></thead><tbody>
+    <section className="lz-panel lz-stock-history-panel"><h2>Últimas movimentações</h2><div className="lz-table-wrap"><table><thead><tr><th>Data</th><th>Peça</th><th>Quantidade</th><th>Motivo</th></tr></thead><tbody>
     {movements.map(m=><tr key={m.id}><td>{date(m.criado_em)}</td><td>{m.nome} · {m.tamanho} · {m.cor}<small>{m.sku}</small></td><td className={m.diferenca>=0?"lz-good":"lz-danger"}>{m.diferenca>0?"+":""}{m.diferenca}</td><td>{m.motivo}</td></tr>)}
     {movements.length===0&&<tr><td colSpan={4} className="lz-empty">Sem movimentações.</td></tr>}</tbody></table></div></section>
    </div>}
