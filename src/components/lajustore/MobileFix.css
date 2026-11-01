@@ -1,0 +1,285 @@
+/* LajuStore — correções práticas para Android/iPhone.
+   Carregado após V6.css e V8.css para neutralizar a antiga regra de
+   navegação horizontal da V6 em resoluções pequenas. */
+
+.lz-mobile-stock-toggle,
+.lz-mobile-stock-cards { display:none; }
+
+/* A gaveta deve ser uma LISTA, não a barra horizontal do V6.css. */
+@media (max-width:1024px) {
+  .lz-shell .lz-sidebar {
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    overscroll-behavior-y:contain;
+  }
+  .lz-shell .lz-sidebar nav {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:4px;
+    width:100%;
+    padding:0 0 12px;
+    margin:0;
+    overflow:visible;
+    flex:0 0 auto;
+  }
+  .lz-shell .lz-sidebar nav button {
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    align-items:center;
+    justify-content:flex-start;
+    gap:13px;
+    width:100%;
+    min-width:0;
+    min-height:49px;
+    padding:12px 13px;
+    font-size:14px;
+    line-height:1.35;
+    text-align:left;
+    white-space:normal;
+  }
+  .lz-shell .lz-sidebar nav .lz-menu-icon {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:25px;
+    min-width:25px;
+    height:26px;
+    font-size:22px;
+    line-height:1;
+    flex:0 0 25px;
+  }
+  .lz-shell .lz-side-label {
+    display:block;
+    padding:0 13px 12px;
+  }
+  .lz-shell .lz-side-bottom {
+    display:block;
+    margin-top:auto;
+    padding:18px 9px calc(14px + env(safe-area-inset-bottom));
+  }
+  .lz-shell .lz-profile {
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .lz-shell .lz-logout {
+    display:flex;
+    align-items:center;
+    min-height:46px;
+    width:100%;
+    font-size:13px;
+  }
+  .lz-shell .lz-drawer-backdrop {
+    touch-action:none;
+  }
+  .lz-shell .lz-close-menu {
+    flex:0 0 42px;
+  }
+}
+
+/* Celular: acesso direto às roupas sem rolar o formulário gigante. */
+@media (max-width:760px) {
+  .lz-shell .lz-mobile-stock-toggle {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:5px;
+    padding:5px;
+    border:1px solid var(--lz-border);
+    border-radius:15px;
+    background:#fff;
+    box-shadow:var(--lz-shadow);
+  }
+  .lz-shell .lz-mobile-stock-toggle button {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:6px;
+    min-width:0;
+    min-height:49px;
+    padding:10px 8px;
+    border:0;
+    border-radius:11px;
+    color:#765960;
+    font-size:12px;
+    font-weight:750;
+    line-height:1.2;
+    background:transparent;
+    cursor:pointer;
+  }
+  .lz-shell .lz-mobile-stock-toggle button.active {
+    color:#fff;
+    background:var(--lz-rose-deep);
+    box-shadow:0 4px 12px rgba(162,71,91,.14);
+  }
+  .lz-shell .lz-mobile-stock-toggle .material-symbols-outlined {
+    flex:none;
+    font-size:19px;
+  }
+  .lz-shell .lz-stock-lista .lz-stock-edit-area,
+  .lz-shell .lz-stock-cadastro .lz-stock-list-panel,
+  .lz-shell .lz-stock-cadastro .lz-stock-history-panel {
+    display:none;
+  }
+  .lz-shell .lz-stock-table {
+    display:none;
+  }
+  .lz-shell .lz-mobile-stock-cards {
+    display:grid;
+    gap:12px;
+    margin-top:14px;
+  }
+  .lz-shell .lz-stock-card {
+    display:grid;
+    gap:13px;
+    padding:15px;
+    min-width:0;
+    border-radius:14px;
+    border:1px solid var(--lz-border);
+    background:#fffcfb;
+    box-shadow:0 2px 10px rgba(67,31,42,.04);
+  }
+  .lz-shell .lz-stock-card-top {
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    justify-content:space-between;
+  }
+  .lz-shell .lz-stock-card-top>div {
+    min-width:0;
+    flex:1;
+  }
+  .lz-shell .lz-stock-card h3 {
+    margin:0 0 5px;
+    color:var(--lz-ink);
+    font-size:15px;
+    font-weight:800;
+    line-height:1.3;
+    overflow-wrap:anywhere;
+  }
+  .lz-shell .lz-stock-card-top small {
+    display:block;
+    color:var(--lz-muted);
+    font-size:11px;
+    line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+  .lz-shell .lz-stock-card-count {
+    padding:7px 9px;
+    border-radius:9px;
+    background:#e8f6eb;
+    color:#236a42;
+    font-size:11px;
+    font-weight:800;
+    white-space:nowrap;
+    text-align:right;
+  }
+  .lz-shell .lz-stock-card-count.is-low {
+    background:#fff0ed;
+    color:#a34340;
+  }
+  .lz-shell .lz-stock-card-details {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px 12px;
+    padding:11px 0;
+    border-top:1px solid var(--lz-border);
+    border-bottom:1px solid var(--lz-border);
+  }
+  .lz-shell .lz-stock-card-details span {
+    min-width:0;
+    display:grid;
+    gap:3px;
+  }
+  .lz-shell .lz-stock-card-details small {
+    color:var(--lz-muted);
+    font-size:11px;
+  }
+  .lz-shell .lz-stock-card-details strong {
+    color:var(--lz-ink);
+    font-size:13px;
+    font-weight:750;
+    overflow-wrap:anywhere;
+  }
+  .lz-shell .lz-stock-card-actions {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .lz-shell .lz-stock-card-actions button {
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:5px;
+    min-width:0;
+    min-height:44px;
+    padding:9px 7px;
+    border:1px solid #e3c7c9;
+    border-radius:10px;
+    background:#fff;
+    color:var(--lz-rose-deep);
+    font-weight:700;
+    font-size:11px;
+    line-height:1.25;
+    cursor:pointer;
+  }
+  .lz-shell .lz-stock-card-actions button:hover {
+    background:var(--lz-rose-pale);
+  }
+  .lz-shell .lz-stock-card-actions .material-symbols-outlined {
+    font-size:18px;
+    flex:none;
+  }
+  .lz-shell .lz-stock-no-items {
+    padding:23px 14px;
+    margin:0;
+    color:var(--lz-muted);
+    font-size:13px;
+    line-height:1.55;
+    text-align:center;
+    border:1px dashed #dfc1c4;
+    border-radius:12px;
+    background:#fffaf8;
+  }
+  .lz-shell .lz-mobile-bottom-nav {
+    background:#fffafa;
+    border-top:1px solid #f0d9d8;
+    gap:2px;
+    padding-inline:max(7px,env(safe-area-inset-left)) max(7px,env(safe-area-inset-right));
+  }
+  .lz-shell .lz-mobile-bottom-nav button {
+    min-height:50px;
+    border-radius:13px;
+    color:#75535e;
+  }
+  .lz-shell .lz-mobile-bottom-nav button.selected {
+    color:var(--lz-rose-deep);
+    background:#fbe6e3;
+    font-weight:800;
+  }
+  .lz-shell .lz-mobile-bottom-nav button .material-symbols-outlined {
+    font-size:24px;
+  }
+  .lz-shell .lz-mobile-bottom-nav button small {
+    font-size:10.5px;
+  }
+  .lz-shell .lz-stock-variant-editor {
+    scroll-margin-top:20px;
+  }
+}
+
+@media(max-width:380px) {
+  .lz-shell .lz-mobile-stock-toggle button {
+    flex-direction:column;
+    gap:3px;
+    font-size:11px;
+  }
+  .lz-shell .lz-mobile-stock-toggle button .material-symbols-outlined {font-size:20px}
+  .lz-shell .lz-mobile-bottom-nav button small {font-size:9.5px}
+  .lz-shell .lz-stock-card-actions button {font-size:10px}
+  .lz-shell .lz-stock-card-actions .material-symbols-outlined{font-size:17px}
+  .lz-shell .lz-brand-logo{width:50px;height:50px}
+  .lz-shell .lz-brand strong{font-size:18px}
+  .lz-shell .lz-brand small{font-size:8px}
+}
