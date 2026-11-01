@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { api } from "../utils/axios";
 import type { Operador } from "../types";
 
 interface AuthContextType {
@@ -17,13 +18,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("@LajuStore:operador");
-      if (raw && sessionStorage.getItem("@LajuStore:token")) setOperador(JSON.parse(raw));
-    } catch {
-      localStorage.removeItem("@LajuStore:operador");
-    }
-    setLoading(false);
+    let active = true;
+    const restore = async () => {
+      const token = sessionStorage.getItem("@LajuStore:token");
+      if (!token) {
+        localStorage.removeItem("@LajuStore:operador");
+        if (active) setLoading(false);
+        return;
+      }
+      try {
+        const { data } = await api.get("/api/auth/me");
+        if (active) {
+          setOperador(data.operador);
+          localStorage.setItem("@LajuStore:operador", JSON.stringify(data.operador));
+        }
+      } catch {
+        sessionStorage.removeItem("@LajuStore:token");
+        localStorage.removeItem("@LajuStore:operador");
+        if (active) setOperador(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void restore();
+    return () => { active = false; };
   }, []);
 
   const login = (operadorData: Operador) => {
