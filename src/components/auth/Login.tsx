@@ -35,7 +35,7 @@ const Login: React.FC = () => {
       toast.success(`Bem-vindo, ${data.operador.nome}!`);
       navigate("/lajustore");
     } catch (error: any) {
-      setSenha("");
+      setPin("");
       setErro(
         error.response?.data?.mensagem || "Erro ao conectar com o servidor.",
       );
@@ -51,15 +51,15 @@ const Login: React.FC = () => {
           <span className="material-symbols-outlined">inventory</span>
         </div>
         <h1 className="auth-title">LajuStore</h1>
-        <p className="auth-subtitle">Identifica-te para começar</p>
+        <p className="auth-subtitle">Entre para gerenciar sua loja</p>
 
         <form onSubmit={handleLogin} style={{ width: "100%" }}>
           <div className="auth-field">
-            <label htmlFor="input-nome">Nome do Operador</label>
+            <label htmlFor="input-nome">Nome de usuário</label>
             <input
               id="input-nome"
               type="text"
-              placeholder="Ex: João Silva"
+              placeholder="Seu nome de acesso"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               disabled={carregando}
@@ -77,15 +77,7 @@ const Login: React.FC = () => {
             className="auth-btn"
             disabled={carregando || pin.length < 10}
           >
-            {carregando ? "A verificar..." : "Entrar no Sistema"}
-          </button>
-          <button
-            type="button"
-            className="auth-btn-sec"
-            onClick={() => navigate("/cadastro")}
-            disabled={carregando}
-          >
-            Criar nova conta
+            {carregando ? "Entrando..." : "Entrar no Sistema"}
           </button>
         </form>
       </div>
