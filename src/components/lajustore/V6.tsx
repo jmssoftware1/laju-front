@@ -462,12 +462,56 @@ export default function LajuStoreV6(){
     {movements.length===0&&<tr><td colSpan={4} className="lz-empty">Sem movimentações.</td></tr>}</tbody></table></div></section>
    </div>}
 
-   {tab==="pdv"&&<div className="lz-content">
-    <div className="lz-two"><section className="lz-panel"><h2>Nova venda</h2><p>Escolha as peças do pedido, depois registre o pagamento recebido.</p>
-     <div className="lz-form"><label className="lz-span-2">Roupa e variação<select value={sellVariant} onChange={e=>setSellVariant(e.target.value)}><option value="">Selecionar roupa</option>{variants.filter(v=>v.quantidade>0).map(v=><option key={v.id} value={v.id}>{v.produto} · {v.tamanho} · {v.cor} | {cash(v.preco)} ({v.quantidade})</option>)}</select></label>
+   {tab==="pdv"&&<div className={`lz-content lz-mobile-pdv lz-pdv-mode-${pdvMobileView}`}>
+    <div className="lz-mobile-module-switch" role="group" aria-label="Área de vendas">
+     <button type="button" className={pdvMobileView==="nova"?"active":""} aria-pressed={pdvMobileView==="nova"} onClick={()=>setPdvMobileView("nova")}>
+      <span className="material-symbols-outlined" aria-hidden="true">add_shopping_cart</span>Nova venda
+     </button>
+     <button type="button" className={pdvMobileView==="pendentes"?"active":""} aria-pressed={pdvMobileView==="pendentes"} onClick={()=>setPdvMobileView("pendentes")}>
+      <span className="material-symbols-outlined" aria-hidden="true">schedule</span>Pendentes{pendentes.length>0&&<small>{pendentes.length}</small>}
+     </button>
+     <button type="button" className={pdvMobileView==="vendas"?"active":""} aria-pressed={pdvMobileView==="vendas"} onClick={()=>setPdvMobileView("vendas")}>
+      <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>Histórico
+     </button>
+    </div>
+    <div className="lz-two lz-pdv-create-area"><section className="lz-panel"><h2>Nova venda</h2><p>Escolha as peças do pedido, depois registre o pagamento recebido.</p>
+     <div className="lz-form lz-pdv-desktop-picker"><label className="lz-span-2">Roupa e variação<select value={sellVariant} onChange={e=>setSellVariant(e.target.value)}><option value="">Selecionar roupa</option>{variants.filter(v=>v.quantidade>0).map(v=><option key={v.id} value={v.id}>{v.produto} · {v.tamanho} · {v.cor} | {cash(v.preco)} ({v.quantidade})</option>)}</select></label>
       <label>Quantidade<input type="number" min="1" step="1" value={sellQuantity} onChange={e=>setSellQuantity(e.target.value)}/></label><button type="button" className="lz-btn" onClick={addCart}>+ Adicionar ao carrinho</button>
      </div>
-     <div className="lz-cart">{cart.length===0?<div className="lz-empty">Seu carrinho está vazio.</div>:cart.map(c=><div className="lz-cart-row" key={c.id}><div><strong>{c.nome}</strong><small>{c.quantidade} × {cash(c.preco)}</small></div><b>{cash(c.quantidade*c.preco)}</b><button aria-label={`Remover ${c.nome}`} type="button" className="lz-link" onClick={()=>setCart(x=>x.filter(y=>y.id!==c.id))}>Remover</button></div>)}</div>
+     <div className="lz-pdv-quick-picker">
+      <label htmlFor="lz-mobile-pdv-search" className="lz-mobile-field-label">Buscar roupa para vender</label>
+      <div className="lz-search-with-icon">
+       <span className="material-symbols-outlined" aria-hidden="true">search</span>
+       <input id="lz-mobile-pdv-search" type="search" value={pdvSearch} onChange={e=>setPdvSearch(e.target.value)}
+         placeholder="Nome, tamanho, cor ou código" autoComplete="off" />
+      </div>
+      <div className="lz-pdv-product-results" aria-label="Roupas disponíveis para venda">
+       {filteredSaleVariants.length===0?<p className="lz-mini-empty">{variants.length===0?"Cadastre roupas no Estoque para começar.":"Nenhuma peça disponível corresponde à sua busca."}</p>:
+        filteredSaleVariants.map(v=>{
+         const selected=cart.find(item=>item.id===v.id)?.quantidade||0;
+         const full=selected>=v.quantidade;
+         return <article key={v.id} className="lz-pdv-product">
+          <div className="lz-pdv-product-info">
+           <strong>{v.produto}</strong>
+           <small>{v.tamanho} · {v.cor} · {v.sku}</small>
+           <span>{cash(v.preco)} <small>{v.quantidade-selected} disponíveis</small></span>
+          </div>
+          <button type="button" onClick={()=>addOneToCart(v.id)} disabled={full} aria-label={`Adicionar ${v.produto}, ${v.tamanho}, ${v.cor} ao carrinho`}>
+           <span className="material-symbols-outlined" aria-hidden="true">{full?"check":"add"}</span>{full?"Adicionado":"Adicionar"}
+          </button>
+         </article>;
+        })}
+      </div>
+      {variants.filter(v=>v.quantidade>0).length>45&&<p className="lz-hint">Exibindo até 45 variações. Use a busca para encontrar outras roupas.</p>}
+     </div>
+     <div className="lz-cart-mobile-heading"><h3>Carrinho</h3><span>{cartCount} {cartCount===1?"peça":"peças"}</span></div>
+     <div className="lz-cart">{cart.length===0?<div className="lz-empty">Seu carrinho está vazio.</div>:cart.map(c=><div className="lz-cart-row" key={c.id}><div><strong>{c.nome}</strong><small>{c.quantidade} × {cash(c.preco)}</small></div>
+      <div className="lz-cart-adjust" role="group" aria-label={`Quantidade de ${c.nome}`}>
+       <button type="button" aria-label={`Diminuir quantidade de ${c.nome}`} onClick={()=>changeCartQuantity(c.id,-1)}>−</button>
+       <span aria-live="polite">{c.quantidade}</span>
+       <button type="button" aria-label={`Aumentar quantidade de ${c.nome}`} disabled={c.quantidade>=(variants.find(v=>v.id===c.id)?.quantidade??0)} onClick={()=>changeCartQuantity(c.id,1)}>+</button>
+      </div>
+      <b>{cash(c.quantidade*c.preco)}</b><button aria-label={`Remover ${c.nome}`} type="button" className="lz-link lz-cart-remove" onClick={()=>setCart(x=>x.filter(y=>y.id!==c.id))}>Remover</button></div>)}</div>
      <div className="lz-cart-total"><span>Subtotal</span><strong>{cash(cartTotal)}</strong></div>
     </section><section className="lz-panel"><h2>Concluir venda</h2>
       <form className="lz-form" onSubmit={sell}>
@@ -482,7 +526,7 @@ export default function LajuStoreV6(){
       </form>
       <p className="lz-hint">Venda confirmada: baixa imediata. Pedido pendente: sem baixa e sem reserva; confirme a disponibilidade no pagamento. O sistema registra, mas não processa pagamentos.</p>
      </section></div>
-     <section className="lz-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento <span className="lz-chip">{pendentes.length}</span></h2>
+     <section className="lz-panel lz-pdv-pending-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento <span className="lz-chip">{pendentes.length}</span></h2>
       <label className="lz-payment-select">Canal
        <select value={pendingFilter} onChange={e=>setPendingFilter(e.target.value)}>
         <option value="todos">Todos</option><option value="loja">Loja física</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option>
@@ -506,10 +550,38 @@ export default function LajuStoreV6(){
        </tr>)}
        {pendingShown.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhum pedido aguardando pagamento neste filtro.</td></tr>}
       </tbody></table></div>
+      <div className="lz-mobile-pending-cards">
+       {pendingShown.length===0?<p className="lz-mini-empty">Nenhum pedido pendente neste filtro.</p>:
+        pendingShown.map(p=>{
+         const insufficient=p.itens.some(i=>Number(i.saldo_atual??0)<i.quantidade);
+         return <article className="lz-mobile-order-card" key={p.id}>
+          <div className="lz-mobile-order-head"><strong>Pedido #{p.id}</strong><span>{cash(p.total)}</span></div>
+          <p>{p.cliente||"Cliente sem cadastro"} · {p.canal} · {date(p.criado_em)}</p>
+          <ul>{p.itens.map((item,i)=><li key={i}>{item.quantidade}× {item.roupa} — {item.tamanho}/{item.cor}</li>)}</ul>
+          {insufficient&&<p className="lz-pdv-out-of-stock">Estoque insuficiente para concluir. Confira as peças disponíveis.</p>}
+          <div className="lz-mobile-order-actions">
+           <button type="button" className="lz-btn" disabled={busy||insufficient} onClick={()=>concludePending(p)}>Confirmar pagamento</button>
+           {manager&&<button type="button" className="lz-btn lz-outline" disabled={busy} onClick={()=>cancelPending(p)}>Cancelar pedido</button>}
+          </div>
+         </article>;
+        })}
+      </div>
      </section>
-     <section className="lz-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
+     <section className="lz-panel lz-pdv-sales-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
       {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
-      {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div></section>
+      {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div>
+      <div className="lz-mobile-sales-cards">
+       {orders.length===0?<p className="lz-mini-empty">Ainda não há vendas registradas.</p>:
+        orders.map(o=><article key={o.id} className="lz-mobile-order-card">
+         <div className="lz-mobile-order-head"><strong>Venda #{o.id}</strong><span>{cash(o.total)}</span></div>
+         <p>{date(o.criado_em)} · {o.canal} · {o.forma_pagamento||"Pagamento não informado"}</p>
+         <p>{o.cliente||"Cliente sem cadastro"}</p>
+         <div className="lz-mobile-sales-footer">
+          <span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span>
+          {manager&&o.status==="pago"&&<button type="button" className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar venda</button>}
+         </div>
+        </article>)}
+      </div></section>
    </div>}
 
    {tab==="clientes"&&<div className="lz-content"><section className="lz-panel"><h2>{editingClient?"Editar cliente":"Cadastrar cliente"}</h2>
