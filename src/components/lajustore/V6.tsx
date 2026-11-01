@@ -18,7 +18,7 @@ type Movement = {id:number;criado_em:string;nome:string;sku:string;tamanho:strin
 type Report = {de:string;ate:string;totais:{vendas:number;bruto:string;descontos:string;faturamento:number;lucro_estimado:number};canais:{canal:string;vendas:number;total:string}[];maisVendidos:{nome:string;tamanho:string;cor:string;pecas:number}[];dias:{dia:string;vendas:number;bruto:string}[];nota:string};
 type Dashboard = {produtos:number;pecas:number;alertas:number;vendas_hoje:number;faturamento_hoje:number;lucro_hoje_estimado:number;top:{nome:string;pecas:number}[]};
 type CartItem = {id:number;nome:string;sku:string;quantidade:number;preco:number};
-type Pending = {id:number;canal:string;cliente:string|null;criado_em:string;total:string;desconto:string;observacao:string|null;itens:{roupa:string;tamanho:string;cor:string;quantidade:number;preco_unitario:string}[]};
+type Pending = {id:number;canal:string;cliente:string|null;criado_em:string;total:string;desconto:string;observacao:string|null;itens:{roupa:string;tamanho:string;cor:string;quantidade:number;preco_unitario:string;saldo_atual:number|null}[]};
 
 const cash=(v:unknown)=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const date=(v:string)=>new Date(v).toLocaleDateString("pt-BR");
@@ -56,7 +56,7 @@ export default function LajuStoreV6(){
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const [products,setProducts]=useState<Product[]>([]),[clients,setClients]=useState<Client[]>([]),[orders,setOrders]=useState<Order[]>([]);
- const [pendentes,setPendentes]=useState<Pending[]>([]),[pendingPayment,setPendingPayment]=useState("pix");
+ const [pendentes,setPendentes]=useState<Pending[]>([]),[pendingPayment,setPendingPayment]=useState("pix"),[pendingFilter,setPendingFilter]=useState("todos");
  const [suppliers,setSuppliers]=useState<Supplier[]>([]),[purchases,setPurchases]=useState<Purchase[]>([]);
  const [entries,setEntries]=useState<Entry[]>([]),[financeSummary,setFinanceSummary]=useState({entradas:0,saidas:0,pendentes:0});
  const [users,setUsers]=useState<User[]>([]),[movements,setMovements]=useState<Movement[]>([]);
@@ -115,6 +115,7 @@ export default function LajuStoreV6(){
  const go=(target:Tab)=>{setNotice("");setError("");setTab(target);};
  const variants=useMemo(()=>products.flatMap(p=>p.variantes.map(v=>({...v,produto:p.nome,preco:Number(p.preco),custo:Number(p.custo||0)}))),[products]);
  const cartTotal=cart.reduce((s,i)=>s+i.quantidade*i.preco,0);
+ const pendingShown=pendentes.filter(p=>pendingFilter==="todos"||p.canal===pendingFilter);
  const safeDiscount=Number(discount)||0;
  const categories=useMemo(()=>[...new Set(products.map(p=>p.categoria).filter((v):v is string=>Boolean(v)))].sort(),[products]);
  const filteredRows=products.filter(p=>
@@ -351,7 +352,12 @@ export default function LajuStoreV6(){
       </form>
       <p className="lz-hint">Venda confirmada: baixa imediata. Pedido pendente: sem baixa e sem reserva; confirme a disponibilidade no pagamento. O sistema registra, mas não processa pagamentos.</p>
      </section></div>
-     <section className="lz-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento</h2>
+     <section className="lz-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento <span className="lz-chip">{pendentes.length}</span></h2>
+      <label className="lz-payment-select">Canal
+       <select value={pendingFilter} onChange={e=>setPendingFilter(e.target.value)}>
+        <option value="todos">Todos</option><option value="loja">Loja física</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option>
+       </select>
+      </label>
       <label className="lz-payment-select">Pagamento na conclusão
        <select value={pendingPayment} onChange={e=>setPendingPayment(e.target.value)}>
         <option value="pix">Pix</option><option value="dinheiro">Dinheiro</option>
@@ -360,14 +366,15 @@ export default function LajuStoreV6(){
       </label></div>
       <p className="lz-hint">Pedidos do WhatsApp, Instagram ou loja física. Não há reserva de peças; o estoque só é reduzido quando o pagamento for confirmado.</p>
       <div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Origem / cliente</th><th>Peças</th><th>Total</th><th>Ações</th></tr></thead><tbody>
-       {pendentes.map(p=><tr key={p.id}><td>#{p.id}<small>{date(p.criado_em)}</small></td>
+       {pendingShown.map(p=><tr key={p.id}><td>#{p.id}<small>{date(p.criado_em)}</small></td>
         <td>{p.canal}<small>{p.cliente||"Sem cadastro"}</small></td>
-        <td>{p.itens.map(i=>`${i.quantidade}× ${i.roupa} (${i.tamanho}/${i.cor})`).join(", ")}</td>
+        <td>{p.itens.map(i=>`${i.quantidade}× ${i.roupa} (${i.tamanho}/${i.cor})`).join(", ")}
+        {p.itens.some(i=>Number(i.saldo_atual??0)<i.quantidade)&&<small className="lz-danger">Estoque insuficiente para confirmar: revise as peças</small>}</td>
         <td>{cash(p.total)}</td>
-        <td><button className="lz-link lz-good" disabled={busy} onClick={()=>concludePending(p)}>Confirmar pagamento</button>
+        <td><button className="lz-link lz-good" disabled={busy||p.itens.some(i=>Number(i.saldo_atual??0)<i.quantidade)} onClick={()=>concludePending(p)}>Confirmar pagamento</button>
          {manager&&<button className="lz-link lz-danger" disabled={busy} onClick={()=>cancelPending(p)}>Cancelar</button>}</td>
        </tr>)}
-       {pendentes.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhum pedido aguardando pagamento.</td></tr>}
+       {pendingShown.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhum pedido aguardando pagamento neste filtro.</td></tr>}
       </tbody></table></div>
      </section>
      <section className="lz-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
