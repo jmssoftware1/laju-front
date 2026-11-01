@@ -584,13 +584,70 @@ export default function LajuStoreV6(){
       </div></section>
    </div>}
 
-   {tab==="clientes"&&<div className="lz-content"><section className="lz-panel"><h2>{editingClient?"Editar cliente":"Cadastrar cliente"}</h2>
+   {tab==="clientes"&&<div className={`lz-content lz-mobile-clients lz-clients-mode-${clientMobileView}`}>
+    <div className="lz-mobile-client-switch" role="group" aria-label="Área de clientes">
+     <button type="button" className={clientMobileView==="lista"?"active":""} aria-pressed={clientMobileView==="lista"} onClick={()=>setClientMobileView("lista")}>
+      <span className="material-symbols-outlined" aria-hidden="true">groups</span> Meus clientes
+     </button>
+     <button type="button" className={clientMobileView==="formulario"?"active":""} aria-pressed={clientMobileView==="formulario"} onClick={()=>{
+      setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");
+      setClientMobileView("formulario");
+     }}>
+      <span className="material-symbols-outlined" aria-hidden="true">person_add</span> Novo cliente
+     </button>
+    </div>
+    <section className="lz-panel lz-client-form-panel"><h2>{editingClient?"Editar cliente":"Cadastrar cliente"}</h2>
     <form className="lz-form lz-form-wide" onSubmit={saveClient}><label>Nome<input required value={clientName} onChange={e=>setClientName(e.target.value)}/></label><label>WhatsApp / telefone<input value={clientPhone} onChange={e=>setClientPhone(e.target.value)}/></label><label>Instagram<input value={clientInstagram} onChange={e=>setClientInstagram(e.target.value)} placeholder="@usuario"/></label><button className="lz-btn" disabled={busy}>{editingClient?"Salvar cliente":"Cadastrar cliente"}</button>
-    {editingClient&&<button type="button" className="lz-btn lz-outline" onClick={()=>{setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");}}>Cancelar</button>}</form></section>
-    <section className="lz-panel"><h2>Clientes da loja</h2><div className="lz-table-wrap"><table><thead><tr><th>Nome</th><th>Contato</th><th>Instagram</th><th>Ações</th></tr></thead><tbody>
-    {clients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>{setEditingClient(c.id);setClientName(c.nome);setClientPhone(c.telefone||"");setClientInstagram(c.instagram||"");window.scrollTo({top:0,behavior:"smooth"});}}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button></td></tr>)}
-    {clients.length===0&&<tr><td colSpan={4} className="lz-empty">Nenhum cliente cadastrado.</td></tr>}</tbody></table></div></section>
-    {historyTitle&&<section className="lz-panel"><h2>Compras de {historyTitle}</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Total</th><th>Status</th></tr></thead><tbody>{clientHistory.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{cash(o.total)}</td><td>{o.status}</td></tr>)}{clientHistory.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhuma compra encontrada.</td></tr>}</tbody></table></div></section>}
+    {editingClient&&<button type="button" className="lz-btn lz-outline" onClick={()=>{setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");setClientMobileView("lista");}}>Cancelar</button>}
+    <button type="button" className="lz-btn lz-outline lz-client-mobile-back" onClick={()=>setClientMobileView("lista")}>Voltar para clientes</button></form></section>
+    <section className="lz-panel lz-client-list-panel">
+     <div className="lz-section-head"><h2>Clientes da loja</h2><span className="lz-chip">{filteredClients.length} {filteredClients.length===1?"cliente":"clientes"}</span></div>
+     <label htmlFor="lz-client-search" className="lz-mobile-field-label">Buscar cliente</label>
+     <div className="lz-search-with-icon lz-client-search">
+      <span className="material-symbols-outlined" aria-hidden="true">search</span>
+      <input id="lz-client-search" type="search" value={clientSearch} onChange={e=>setClientSearch(e.target.value)}
+       placeholder="Nome, WhatsApp ou Instagram" autoComplete="off"/>
+     </div>
+     <div className="lz-table-wrap"><table><thead><tr><th>Nome</th><th>Contato</th><th>Instagram</th><th>Ações</th></tr></thead><tbody>
+    {filteredClients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>startEditClient(c)}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button></td></tr>)}
+    {filteredClients.length===0&&<tr><td colSpan={4} className="lz-empty">Nenhum cliente encontrado.</td></tr>}</tbody></table></div>
+    <div className="lz-mobile-client-cards">
+     {filteredClients.length===0?<p className="lz-mini-empty">Nenhum cliente encontrado. Use "Novo cliente" para cadastrar.</p>:
+      filteredClients.map(c=>{
+       const whats=whatsappCliente(c.telefone),insta=instagramCliente(c.instagram);
+       return <article className="lz-mobile-client-card" key={c.id}>
+        <div className="lz-mobile-client-header">
+         <div className="lz-mobile-client-avatar" aria-hidden="true">{c.nome.slice(0,1).toLocaleUpperCase("pt-BR")}</div>
+         <div><strong>{c.nome}</strong><small>{c.telefone||"Telefone não cadastrado"}</small>{c.instagram&&<small>{c.instagram}</small>}</div>
+        </div>
+        <div className="lz-mobile-client-actions">
+         {whats&&<a href={whats} target="_blank" rel="noopener noreferrer" aria-label={`Abrir WhatsApp de ${c.nome}`}>
+          <span className="material-symbols-outlined" aria-hidden="true">chat</span> WhatsApp</a>}
+         {insta&&<a href={insta} target="_blank" rel="noopener noreferrer" aria-label={`Abrir Instagram de ${c.nome}`}>
+          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span> Instagram</a>}
+         <button type="button" onClick={()=>void showClientOrders(c)}>
+          <span className="material-symbols-outlined" aria-hidden="true">history</span> Compras</button>
+         <button type="button" onClick={()=>startEditClient(c)}>
+          <span className="material-symbols-outlined" aria-hidden="true">edit</span> Editar</button>
+        </div>
+       </article>;
+      })}
+    </div>
+    </section>
+    {historyTitle&&<section className="lz-panel lz-client-history-panel">
+     <button className="lz-client-back-button" type="button" onClick={()=>setClientMobileView("lista")}>
+      <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span> Voltar para clientes
+     </button>
+     <h2>Compras de {historyTitle}</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Total</th><th>Status</th></tr></thead><tbody>{clientHistory.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{cash(o.total)}</td><td>{o.status}</td></tr>)}{clientHistory.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhuma compra encontrada.</td></tr>}</tbody></table></div>
+     <div className="lz-mobile-client-orders">
+      {clientHistory.length===0?<p className="lz-mini-empty">Esta cliente ainda não possui compras registradas.</p>:
+       clientHistory.map(o=><article key={o.id} className="lz-mobile-order-card">
+        <div className="lz-mobile-order-head"><strong>Pedido #{o.id}</strong><span>{cash(o.total)}</span></div>
+        <p>{date(o.criado_em)} · {o.canal}</p>
+        <span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span>
+       </article>)}
+     </div>
+    </section>}
    </div>}
 
    {tab==="financeiro"&&manager&&<div className="lz-content">
