@@ -6,6 +6,7 @@ import {useAuth} from "../../context/AuthContext";
 import "./V6.css";
 import "./V8.css";
 import "./MobileFix.css";
+import "./MobilePdvClients.css";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
@@ -29,6 +30,19 @@ const errorMessage=(e:unknown)=>{
  return e instanceof Error ? e.message : "Não foi possível concluir a operação.";
 };
 const today=()=>new Date().toISOString().slice(0,10);
+
+/** Link apenas para telefones brasileiros válidos; nenhum dado é enviado automaticamente. */
+const whatsappCliente=(telefone:string|null)=>{
+ const digits=(telefone||"").replace(/\D/g,"");
+ const phone=(digits.length===10||digits.length===11)?"55"+digits:
+   ((digits.length===12||digits.length===13)&&digits.startsWith("55"))?digits:null;
+ return phone?"https://wa.me/"+phone:null;
+};
+const instagramCliente=(instagram:string|null)=>{
+ const user=(instagram||"").trim().replace(/^@/,"");
+ return /^[a-zA-Z0-9._]{1,30}$/.test(user)?"https://www.instagram.com/"+user+"/":null;
+};
+
 const downloadCsv=(filename:string,rows:(string|number)[][])=>{
  const csv="\uFEFF"+rows.map(row=>row.map(value=>{
   const raw=String(value??"");
@@ -57,6 +71,10 @@ export default function LajuStoreV6(){
  const manager=operador?.role==="gestor";
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [navOpen,setNavOpen]=useState(false);
+ const [pdvMobileView,setPdvMobileView]=useState<"nova"|"pendentes"|"vendas">("nova");
+ const [clientMobileView,setClientMobileView]=useState<"lista"|"formulario"|"historico">("lista");
+ const [pdvSearch,setPdvSearch]=useState("");
+ const [clientSearch,setClientSearch]=useState("");
  const [stockMobileView,setStockMobileView]=useState<"lista"|"cadastro">("lista");
  useEffect(()=>{
   if(!navOpen)return;
@@ -129,6 +147,8 @@ export default function LajuStoreV6(){
  };
  const go=(target:Tab)=>{
   setNotice("");setError("");setTab(target);setNavOpen(false);
+  if(target==="pdv")setPdvMobileView("nova");
+  if(target==="clientes")setClientMobileView("lista");
   window.scrollTo({top:0,behavior:"auto"});
  };
  const beginEditProduct=(p:Product)=>{
@@ -142,6 +162,18 @@ export default function LajuStoreV6(){
  },[variantEdit,tab]);
  const variants=useMemo(()=>products.flatMap(p=>p.variantes.map(v=>({...v,produto:p.nome,preco:Number(p.preco),custo:Number(p.custo||0)}))),[products]);
  const cartTotal=cart.reduce((s,i)=>s+i.quantidade*i.preco,0);
+ const cartCount=cart.reduce((total,item)=>total+item.quantidade,0);
+ const filteredSaleVariants=useMemo(()=>{
+  const query=pdvSearch.trim().toLocaleLowerCase("pt-BR");
+  return variants.filter(v=>v.quantidade>0 && (
+   !query || [v.produto,v.sku,v.cor,v.tamanho].some(value=>value.toLocaleLowerCase("pt-BR").includes(query))
+  )).slice(0,45);
+ },[variants,pdvSearch]);
+ const filteredClients=useMemo(()=>{
+  const query=clientSearch.trim().toLocaleLowerCase("pt-BR");
+  return clients.filter(c=>!query||
+   [c.nome,c.telefone||"",c.instagram||""].some(value=>value.toLocaleLowerCase("pt-BR").includes(query)));
+ },[clients,clientSearch]);
  const pendingShown=pendentes.filter(p=>pendingFilter==="todos"||p.canal===pendingFilter);
  const safeDiscount=Number(discount)||0;
  const categories=useMemo(()=>[...new Set(products.map(p=>p.categoria).filter((v):v is string=>Boolean(v)))].sort(),[products]);
@@ -206,12 +238,37 @@ export default function LajuStoreV6(){
   setCart(prev=>existing?prev.map(x=>x.id===v.id?{...x,quantidade:x.quantidade+q}:x):[...prev,{id:v.id,nome:`${v.produto} · ${v.tamanho} · ${v.cor}`,sku:v.sku,quantidade:q,preco:v.preco}]);
   setError("");setSellVariant("");setSellQuantity("1");
  };
+ const addOneToCart=(variantId:number)=>{
+  const v=variants.find(x=>x.id===variantId);
+  if(!v){setError("A peça selecionada não está disponível.");return;}
+  const existing=cart.find(x=>x.id===variantId)?.quantidade||0;
+  if(existing>=v.quantidade){setError("Você já adicionou toda a quantidade disponível dessa peça.");return;}
+  setCart(items=>existing
+   ?items.map(item=>item.id===variantId?{...item,quantidade:item.quantidade+1}:item)
+   :[...items,{id:v.id,nome:`${v.produto} · ${v.tamanho} · ${v.cor}`,sku:v.sku,quantidade:1,preco:v.preco}]);
+  setError("");
+ };
+ const changeCartQuantity=(variantId:number,difference:number)=>{
+  const item=cart.find(x=>x.id===variantId);
+  const available=variants.find(v=>v.id===variantId)?.quantidade??0;
+  if(!item)return;
+  const next=item.quantidade+difference;
+  if(next>available){setError("O estoque não possui mais unidades dessa variação.");return;}
+  setCart(current=>next<=0?current.filter(x=>x.id!==variantId):
+   current.map(x=>x.id===variantId?{...x,quantidade:next}:x));
+  setError("");
+ };
+ const startEditClient=(c:Client)=>{
+  setEditingClient(c.id);setClientName(c.nome);setClientPhone(c.telefone||"");
+  setClientInstagram(c.instagram||"");setClientMobileView("formulario");
+  window.scrollTo({top:0,behavior:"smooth"});
+ };
  const sell=(e:FormEvent)=>{e.preventDefault();if(cart.length===0){setError("Adicione ao menos uma peça ao carrinho.");return;}
   if(safeDiscount<0||safeDiscount>cartTotal){setError("Desconto inválido.");return;}
   void run(async()=>{
    const {data}=await api.post("/api/v6/vendas",{cliente_id:sellClient?Number(sellClient):null,canal:sellChannel,forma_pagamento:payment,desconto:safeDiscount,observacao:sellNote,
     itens:cart.map(x=>({variante_id:x.id,quantidade:x.quantidade}))});
-   setCart([]);setDiscount("0");setSellNote("");
+   setCart([]);setDiscount("0");setSellNote("");setPdvMobileView("vendas");
    setNotice(`Venda #${data.id} registrada!`);
   },"Venda concluída e estoque atualizado.");
  };
@@ -223,7 +280,7 @@ export default function LajuStoreV6(){
     desconto:safeDiscount,observacao:sellNote,
     itens:cart.map(x=>({variante_id:x.id,quantidade:x.quantidade}))
    });
-   setCart([]);setDiscount("0");setSellNote("");
+   setCart([]);setDiscount("0");setSellNote("");setPdvMobileView("pendentes");
   },"Pedido aguardando pagamento salvo. O estoque não foi reservado.");
  };
  const concludePending=(order:Pending)=>{
@@ -240,11 +297,15 @@ export default function LajuStoreV6(){
   const payload={nome:clientName,telefone:clientPhone,instagram:clientInstagram};
   if(editingClient)await api.patch(`/api/v6/clientes/${editingClient}`,payload);
   else await api.post("/api/lajustore/clientes",payload);
-  setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");
+  setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");setClientMobileView("lista");
  },"Cliente salvo.")};
  const showClientOrders=async(client:Client)=>{
-  try{setHistoryTitle(client.nome);const {data}=await api.get<Order[]>(`/api/v6/clientes/${client.id}/compras`);setClientHistory(data);}
-  catch(e){setError(errorMessage(e));}
+  try{
+   setError("");
+   const {data}=await api.get<Order[]>(`/api/v6/clientes/${client.id}/compras`);
+   setHistoryTitle(client.nome);setClientHistory(data);setClientMobileView("historico");
+   window.scrollTo({top:0,behavior:"smooth"});
+  } catch(e){setError(errorMessage(e));}
  };
  const saveSupplier=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
   await api.post("/api/v6/fornecedores",{nome:supplierName,telefone:supplierPhone,email:supplierEmail});
