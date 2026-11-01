@@ -1,1 +1,25 @@
-{"name":"LajuStore — Gestão da Loja","short_name":"LajuStore","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#7c3aed"}
+{
+  "name": "LajuStore — Gestão da Loja",
+  "short_name": "LajuStore",
+  "description": "Sistema de gestão de roupas, estoque e vendas",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fff8f7",
+  "theme_color": "#f0b1aa",
+  "icons": [
+    {
+      "src": "/brand/laju-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/laju-store-logo.jpg",
+      "sizes": "150x150",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
