@@ -1,7 +1,7 @@
 import {BrowserRouter,Routes,Route,Navigate} from 'react-router-dom';
 import {AuthProvider,useAuth} from '../context/AuthContext';
 import Login from '../components/auth/Login';
-import LajuStore from '../components/lajustore/LajuStore';
+import LajuStore from '../components/lajustore/V6';
 import {ToastProvider} from '../context/alerts/ToastContext';
 function Private({children}:{children:React.ReactNode}){const {operador,loading}=useAuth();if(loading)return <div role="status" style={{padding:32}}>Carregando sessão...</div>;return operador?<>{children}</>:<Navigate to="/"/>}
 export default function App(){return <AuthProvider><ToastProvider><BrowserRouter><Routes>
