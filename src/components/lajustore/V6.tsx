@@ -18,6 +18,7 @@ type Movement = {id:number;criado_em:string;nome:string;sku:string;tamanho:strin
 type Report = {de:string;ate:string;totais:{vendas:number;bruto:string;descontos:string;faturamento:number;lucro_estimado:number};canais:{canal:string;vendas:number;total:string}[];maisVendidos:{nome:string;tamanho:string;cor:string;pecas:number}[];dias:{dia:string;vendas:number;bruto:string}[];nota:string};
 type Dashboard = {produtos:number;pecas:number;alertas:number;vendas_hoje:number;faturamento_hoje:number;lucro_hoje_estimado:number;top:{nome:string;pecas:number}[]};
 type CartItem = {id:number;nome:string;sku:string;quantidade:number;preco:number};
+type Pending = {id:number;canal:string;cliente:string|null;criado_em:string;total:string;desconto:string;observacao:string|null;itens:{roupa:string;tamanho:string;cor:string;quantidade:number;preco_unitario:string}[]};
 
 const cash=(v:unknown)=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const date=(v:string)=>new Date(v).toLocaleDateString("pt-BR");
@@ -26,6 +27,17 @@ const errorMessage=(e:unknown)=>{
  return e instanceof Error ? e.message : "Não foi possível concluir a operação.";
 };
 const today=()=>new Date().toISOString().slice(0,10);
+const downloadCsv=(filename:string,rows:(string|number)[][])=>{
+ const csv="\uFEFF"+rows.map(row=>row.map(value=>{
+  const raw=String(value??"");
+  const safe=/^[\s]*[=+@\-]/.test(raw)?"'"+raw:raw;
+  return '"'+safe.replace(/"/g,'""')+'"';
+ }).join(";")).join("\r\n");
+ const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const link=document.createElement("a");link.href=url;link.download=filename;
+ document.body.appendChild(link);link.click();link.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 const menus:{id:Tab;label:string;icon:string;gestor?:boolean}[]=[
  {id:"inicio",label:"Dashboard",icon:"▦"},
  {id:"estoque",label:"Estoque",icon:"▤"},
@@ -44,6 +56,7 @@ export default function LajuStoreV6(){
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const [products,setProducts]=useState<Product[]>([]),[clients,setClients]=useState<Client[]>([]),[orders,setOrders]=useState<Order[]>([]);
+ const [pendentes,setPendentes]=useState<Pending[]>([]),[pendingPayment,setPendingPayment]=useState("pix");
  const [suppliers,setSuppliers]=useState<Supplier[]>([]),[purchases,setPurchases]=useState<Purchase[]>([]);
  const [entries,setEntries]=useState<Entry[]>([]),[financeSummary,setFinanceSummary]=useState({entradas:0,saidas:0,pendentes:0});
  const [users,setUsers]=useState<User[]>([]),[movements,setMovements]=useState<Movement[]>([]);
@@ -57,6 +70,8 @@ export default function LajuStoreV6(){
  const [newVariantProduct,setNewVariantProduct]=useState(""),[editProduct,setEditProduct]=useState<Product|null>(null);
  const [adjustVariant,setAdjustVariant]=useState(""),[adjustQty,setAdjustQty]=useState(""),[adjustReason,setAdjustReason]=useState("Reposição de estoque");
  const [search,setSearch]=useState("");
+ const [categoryFilter,setCategoryFilter]=useState("todas"),[onlyLow,setOnlyLow]=useState(false);
+ const [variantEdit,setVariantEdit]=useState<Variant|null>(null);
  const [sellVariant,setSellVariant]=useState(""),[sellQuantity,setSellQuantity]=useState("1"),[cart,setCart]=useState<CartItem[]>([]);
  const [sellClient,setSellClient]=useState(""),[sellChannel,setSellChannel]=useState("loja"),[payment,setPayment]=useState("pix"),[discount,setDiscount]=useState("0"),[sellNote,setSellNote]=useState("");
  const [clientName,setClientName]=useState(""),[clientPhone,setClientPhone]=useState(""),[clientInstagram,setClientInstagram]=useState("");
@@ -77,8 +92,8 @@ export default function LajuStoreV6(){
     setProducts(a.data);setMovements(b.data);
    }
    if(tab==="pdv"){
-    const [a,b,c]=await Promise.all([api.get<Product[]>("/api/lajustore/produtos"),api.get<Client[]>("/api/lajustore/clientes"),api.get<Order[]>("/api/v6/vendas")]);
-    setProducts(a.data);setClients(b.data);setOrders(c.data);
+    const [a,b,c,d]=await Promise.all([api.get<Product[]>("/api/lajustore/produtos"),api.get<Client[]>("/api/lajustore/clientes"),api.get<Order[]>("/api/v6/vendas"),api.get<Pending[]>("/api/v7/pendentes")]);
+    setProducts(a.data);setClients(b.data);setOrders(c.data);setPendentes(d.data);
    }
    if(tab==="clientes"){const {data}=await api.get<Client[]>("/api/lajustore/clientes");setClients(data);}
    if(tab==="financeiro"&&manager){const {data}=await api.get("/api/v6/financeiro");setEntries(data.lancamentos);setFinanceSummary(data.resumo);}
@@ -101,7 +116,33 @@ export default function LajuStoreV6(){
  const variants=useMemo(()=>products.flatMap(p=>p.variantes.map(v=>({...v,produto:p.nome,preco:Number(p.preco),custo:Number(p.custo||0)}))),[products]);
  const cartTotal=cart.reduce((s,i)=>s+i.quantidade*i.preco,0);
  const safeDiscount=Number(discount)||0;
- const filteredProducts=products.filter(p=>`${p.nome} ${p.categoria||""} ${p.variantes.map(v=>v.sku).join(" ")}`.toLowerCase().includes(search.toLowerCase()));
+ const categories=useMemo(()=>[...new Set(products.map(p=>p.categoria).filter((v):v is string=>Boolean(v)))].sort(),[products]);
+ const filteredRows=products.filter(p=>
+  (categoryFilter==="todas" || p.categoria===categoryFilter)
+ ).flatMap(p=>p.variantes.map(v=>({p,v}))).filter(({p,v})=>
+  `${p.nome} ${p.categoria||""} ${v.sku} ${v.tamanho} ${v.cor}`.toLowerCase().includes(search.toLowerCase())
+  &&(!onlyLow||v.quantidade<=v.minimo)
+ );
+ const exportStock=()=>downloadCsv("lajustore-estoque.csv",[
+  ["Produto","Categoria","SKU","Tamanho","Cor","Quantidade","Mínimo","Preço"],
+  ...filteredRows.map(({p,v})=>[p.nome,p.categoria||"",v.sku,v.tamanho,v.cor,v.quantidade,v.minimo,String(p.preco)])
+ ]);
+ const exportReport=()=>{
+  if(!report)return;
+  downloadCsv(`lajustore-relatorio-${report.de}-${report.ate}.csv`,[
+   ["Relatório LajuStore","Início",report.de,"Fim",report.ate],
+   ["Vendas",report.totais.vendas,"Faturamento",String(report.totais.faturamento),"Lucro estimado",String(report.totais.lucro_estimado)],
+   [],
+   ["Vendas por dia","Vendas","Bruto"],
+   ...report.dias.map(d=>[d.dia,d.vendas,String(d.bruto)]),
+   [],
+   ["Canal","Vendas","Faturamento"],
+   ...report.canais.map(c=>[c.canal,c.vendas,String(c.total)]),
+   [],
+   ["Mais vendidos","Tamanho","Cor","Peças"],
+   ...report.maisVendidos.map(p=>[p.nome,p.tamanho,p.cor,p.pecas])
+  ]);
+ };
  const signOut=()=>{logout();navigate("/");};
 
  const addProduct=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
@@ -120,6 +161,15 @@ export default function LajuStoreV6(){
   await api.post(`/api/v6/variantes/${adjustVariant}/ajuste`,{diferenca:Number(adjustQty),motivo:adjustReason});
   setAdjustQty("");
  },"Movimentação registrada.")};
+ const saveVariantEdit=(e:FormEvent)=>{
+  e.preventDefault();if(!variantEdit)return;
+  void run(async()=>{
+   await api.patch(`/api/v7/variantes/${variantEdit.id}`,{
+    sku:variantEdit.sku,tamanho:variantEdit.tamanho,cor:variantEdit.cor,minimo:variantEdit.minimo
+   });
+   setVariantEdit(null);
+  },"Variação atualizada. O saldo do estoque não foi alterado.");
+ };
  const addCart=()=>{
   const v=variants.find(x=>x.id===Number(sellVariant)),q=Number(sellQuantity);
   if(!v||!Number.isSafeInteger(q)||q<=0){setError("Escolha a peça e uma quantidade válida.");return;}
@@ -136,6 +186,27 @@ export default function LajuStoreV6(){
    setCart([]);setDiscount("0");setSellNote("");
    setNotice(`Venda #${data.id} registrada!`);
   },"Venda concluída e estoque atualizado.");
+ };
+ const savePending=()=>{
+  if(!cart.length || safeDiscount<0 || safeDiscount>cartTotal){setError("Confira as peças e o desconto.");return;}
+  void run(async()=>{
+   await api.post("/api/v7/pendentes",{
+    cliente_id:sellClient?Number(sellClient):null,canal:sellChannel,
+    desconto:safeDiscount,observacao:sellNote,
+    itens:cart.map(x=>({variante_id:x.id,quantidade:x.quantidade}))
+   });
+   setCart([]);setDiscount("0");setSellNote("");
+  },"Pedido aguardando pagamento salvo. O estoque não foi reservado.");
+ };
+ const concludePending=(order:Pending)=>{
+  if(!window.confirm(`Confirmar que o pagamento do pedido #${order.id} foi recebido por ${pendingPayment}?`))return;
+  void run(async()=>{
+   await api.post(`/api/v7/pendentes/${order.id}/concluir`,{forma_pagamento:pendingPayment});
+  },"Pagamento registrado: venda concluída e estoque atualizado.");
+ };
+ const cancelPending=(order:Pending)=>{
+  if(!window.confirm(`Cancelar o pedido pendente #${order.id}? Nenhuma peça será retirada do estoque.`))return;
+  void run(async()=>{await api.post(`/api/v7/pendentes/${order.id}/cancelar`);},"Pedido pendente cancelado.");
  };
  const saveClient=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
   const payload={nome:clientName,telefone:clientPhone,instagram:clientInstagram};
@@ -228,11 +299,33 @@ export default function LajuStoreV6(){
        <button className="lz-btn" disabled={busy}>Registrar movimentação</button></form></section>}
      </div>
     </div>
-    <section className="lz-panel"><div className="lz-section-head"><h2>Roupas cadastradas</h2><input className="lz-search" aria-label="Buscar roupa" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar nome, categoria ou SKU"/></div>
+    <section className="lz-panel"><div className="lz-section-head"><h2>Roupas cadastradas</h2>
+     <button type="button" className="lz-btn lz-outline" onClick={exportStock}>Exportar estoque CSV</button>
+     </div>
+     <div className="lz-filters">
+      <input className="lz-search" aria-label="Buscar roupa" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar nome, tamanho, cor ou SKU"/>
+      <select aria-label="Filtrar categoria" value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)}>
+       <option value="todas">Todas as categorias</option>{categories.map(c=><option key={c} value={c}>{c}</option>)}
+      </select>
+      <label className="lz-check"><input type="checkbox" checked={onlyLow} onChange={e=>setOnlyLow(e.target.checked)}/> Apenas estoque baixo</label>
+     </div>
      <div className="lz-table-wrap"><table><thead><tr><th>Produto / SKU</th><th>Categoria</th><th>Tamanho / cor</th><th>Preço</th><th>Saldo</th>{manager&&<th>Ação</th>}</tr></thead>
-      <tbody>{filteredProducts.flatMap(p=>p.variantes.map(v=><tr key={v.id}><td><strong>{p.nome}</strong><small>{v.sku}</small></td><td>{p.categoria||"—"}</td><td>{v.tamanho} · {v.cor}</td><td>{cash(p.preco)}</td><td><span className={v.quantidade<=v.minimo?"lz-danger":"lz-good"}>{v.quantidade} peças</span></td>{manager&&<td><button className="lz-link" onClick={()=>{setEditProduct(p);setProdName(p.nome);setProdCategory(p.categoria||"");setProdDesc(p.descricao||"");setProdPrice(p.preco);setProdCost(p.custo||"");window.scrollTo({top:0,behavior:"smooth"});}}>Editar</button></td>}</tr>))}
-      {filteredProducts.length===0&&<tr><td colSpan={6} className="lz-empty">Nenhuma roupa encontrada.</td></tr>}</tbody></table></div>
+      <tbody>{filteredRows.map(({p,v})=><tr key={v.id}><td><strong>{p.nome}</strong><small>{v.sku}</small></td><td>{p.categoria||"—"}</td><td>{v.tamanho} · {v.cor}</td><td>{cash(p.preco)}</td><td><span className={v.quantidade<=v.minimo?"lz-danger":"lz-good"}>{v.quantidade} peças</span></td>{manager&&<td><button className="lz-link" onClick={()=>{setEditProduct(p);setProdName(p.nome);setProdCategory(p.categoria||"");setProdDesc(p.descricao||"");setProdPrice(p.preco);setProdCost(p.custo||"");window.scrollTo({top:0,behavior:"smooth"});}}>Produto</button>
+       <button className="lz-link" onClick={()=>setVariantEdit({...v})}>Variação</button></td>}</tr>)}
+      {filteredRows.length===0&&<tr><td colSpan={6} className="lz-empty">Nenhuma roupa encontrada.</td></tr>}</tbody></table></div>
     </section>
+    {manager&&variantEdit&&<section className="lz-panel">
+     <h2>Editar variação — {variantEdit.id}</h2>
+     <p>Atualize o código, tamanho, cor e estoque mínimo. Para alterar a quantidade, utilize uma movimentação de estoque.</p>
+     <form className="lz-form lz-form-wide" onSubmit={saveVariantEdit}>
+      <label>SKU<input required value={variantEdit.sku} onChange={e=>setVariantEdit(v=>v?{...v,sku:e.target.value}:v)}/></label>
+      <label>Tamanho<input required value={variantEdit.tamanho} onChange={e=>setVariantEdit(v=>v?{...v,tamanho:e.target.value}:v)}/></label>
+      <label>Cor<input required value={variantEdit.cor} onChange={e=>setVariantEdit(v=>v?{...v,cor:e.target.value}:v)}/></label>
+      <label>Mínimo<input required type="number" min="0" step="1" value={variantEdit.minimo} onChange={e=>setVariantEdit(v=>v?{...v,minimo:Number(e.target.value)}:v)}/></label>
+      <button className="lz-btn" disabled={busy}>Salvar variação</button>
+      <button type="button" className="lz-btn lz-outline" onClick={()=>setVariantEdit(null)}>Cancelar</button>
+     </form>
+    </section>}
     <section className="lz-panel"><h2>Últimas movimentações</h2><div className="lz-table-wrap"><table><thead><tr><th>Data</th><th>Peça</th><th>Quantidade</th><th>Motivo</th></tr></thead><tbody>
     {movements.map(m=><tr key={m.id}><td>{date(m.criado_em)}</td><td>{m.nome} · {m.tamanho} · {m.cor}<small>{m.sku}</small></td><td className={m.diferenca>=0?"lz-good":"lz-danger"}>{m.diferenca>0?"+":""}{m.diferenca}</td><td>{m.motivo}</td></tr>)}
     {movements.length===0&&<tr><td colSpan={4} className="lz-empty">Sem movimentações.</td></tr>}</tbody></table></div></section>
@@ -254,9 +347,29 @@ export default function LajuStoreV6(){
        <label className="lz-span-2">Observações<input value={sellNote} onChange={e=>setSellNote(e.target.value)} placeholder="Retirada, entrega, observações"/></label>
        <div className="lz-total lz-span-2"><span>Total da venda</span><strong>{cash(Math.max(0,cartTotal-safeDiscount))}</strong></div>
        <button disabled={busy||cart.length===0} className="lz-btn lz-span-2">Confirmar venda e baixar estoque</button>
+       <button type="button" disabled={busy||cart.length===0} className="lz-btn lz-outline lz-span-2" onClick={savePending}>Salvar pedido aguardando pagamento</button>
       </form>
-      <p className="lz-hint">O sistema registra a venda como paga, mas não recebe pagamentos automaticamente.</p>
+      <p className="lz-hint">Venda confirmada: baixa imediata. Pedido pendente: sem baixa e sem reserva; confirme a disponibilidade no pagamento. O sistema registra, mas não processa pagamentos.</p>
      </section></div>
+     <section className="lz-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento</h2>
+      <label className="lz-payment-select">Pagamento na conclusão
+       <select value={pendingPayment} onChange={e=>setPendingPayment(e.target.value)}>
+        <option value="pix">Pix</option><option value="dinheiro">Dinheiro</option>
+        <option value="debito">Cartão débito</option><option value="credito">Cartão crédito</option><option value="outro">Outro</option>
+       </select>
+      </label></div>
+      <p className="lz-hint">Pedidos do WhatsApp, Instagram ou loja física. Não há reserva de peças; o estoque só é reduzido quando o pagamento for confirmado.</p>
+      <div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Origem / cliente</th><th>Peças</th><th>Total</th><th>Ações</th></tr></thead><tbody>
+       {pendentes.map(p=><tr key={p.id}><td>#{p.id}<small>{date(p.criado_em)}</small></td>
+        <td>{p.canal}<small>{p.cliente||"Sem cadastro"}</small></td>
+        <td>{p.itens.map(i=>`${i.quantidade}× ${i.roupa} (${i.tamanho}/${i.cor})`).join(", ")}</td>
+        <td>{cash(p.total)}</td>
+        <td><button className="lz-link lz-good" disabled={busy} onClick={()=>concludePending(p)}>Confirmar pagamento</button>
+         {manager&&<button className="lz-link lz-danger" disabled={busy} onClick={()=>cancelPending(p)}>Cancelar</button>}</td>
+       </tr>)}
+       {pendentes.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhum pedido aguardando pagamento.</td></tr>}
+      </tbody></table></div>
+     </section>
      <section className="lz-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
       {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
       {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div></section>
@@ -308,7 +421,7 @@ export default function LajuStoreV6(){
    </div>}
 
    {tab==="relatorios"&&manager&&<div className="lz-content">
-    <section className="lz-panel"><div className="lz-section-head"><h2>Período da análise</h2><div className="lz-range"><label>De<input aria-label="Data inicial" type="date" value={rangeStart} onChange={e=>setRangeStart(e.target.value)}/></label><label>Até<input aria-label="Data final" type="date" value={rangeEnd} onChange={e=>setRangeEnd(e.target.value)}/></label><button className="lz-btn" onClick={()=>void refresh()}>Consultar</button></div></div></section>
+    <section className="lz-panel"><div className="lz-section-head"><h2>Período da análise</h2><button className="lz-btn lz-outline" disabled={!report} onClick={exportReport}>Exportar relatório CSV</button><div className="lz-range"><label>De<input aria-label="Data inicial" type="date" value={rangeStart} onChange={e=>setRangeStart(e.target.value)}/></label><label>Até<input aria-label="Data final" type="date" value={rangeEnd} onChange={e=>setRangeEnd(e.target.value)}/></label><button className="lz-btn" onClick={()=>void refresh()}>Consultar</button></div></div></section>
     <div className="lz-metrics lz-three"><article className="lz-metric"><small>Vendas no período</small><strong>{report?.totais.vendas??"—"}</strong></article><article className="lz-metric"><small>Faturamento líquido</small><strong>{report?cash(report.totais.faturamento):"—"}</strong></article><article className="lz-metric"><small>Lucro bruto estimado</small><strong>{report?cash(report.totais.lucro_estimado):"—"}</strong></article></div>
     <div className="lz-two"><section className="lz-panel"><h2>Vendas por canal</h2>{report?.canais.length?report.canais.map(c=><div className="lz-breakdown" key={c.canal}><div><strong>{c.canal}</strong><small>{c.vendas} vendas · {cash(c.total)}</small></div><div className="lz-bar"><span style={{width:`${Math.min(100,100*Number(c.total)/Math.max(1,...report.canais.map(x=>Number(x.total))))}%`}}/></div></div>):<div className="lz-empty">Sem vendas neste período.</div>}</section>
      <section className="lz-panel"><h2>Produtos mais vendidos</h2>{report?.maisVendidos.length?report.maisVendidos.map((p,i)=><div className="lz-top-product" key={`${p.nome}-${p.tamanho}-${p.cor}`}><span>{i+1}</span><strong>{p.nome}<small>{p.tamanho} · {p.cor}</small></strong><small>{p.pecas} peças</small></div>):<div className="lz-empty">Sem dados neste período.</div>}</section></div>
