@@ -65,7 +65,6 @@ function processarFoto(file: File): Promise<string> {
 
 const Perfil: React.FC = () => {
   const { operador, logout, updateOperador } = useAuth();
-  const isGestor = operador?.cargo?.toLowerCase().includes("gestor") ?? false;
   const { toast, confirm } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
 
