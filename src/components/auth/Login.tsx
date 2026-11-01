@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/alerts/ToastContext";
 import { api } from "../../utils/axios";
 import "./Auth.css";
+import "./AuthV8.css";
 
 // ── senha boxes ──────────────────────────────────────────────────────────────
 // ── Componente principal ───────────────────────────────────────────────────
@@ -48,18 +49,20 @@ const Login: React.FC = () => {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <span className="material-symbols-outlined">inventory</span>
+          <img src="/brand/laju-store-logo.jpg" width="106" height="106" alt="Laju Store — logo oficial" />
         </div>
-        <h1 className="auth-title">LajuStore</h1>
-        <p className="auth-subtitle">Entre para gerenciar sua loja</p>
+        <div className="auth-eyebrow">BEM-VINDA À SUA LOJA</div>
+        <h1 className="auth-title">Acesse a LajuStore</h1>
+        <p className="auth-subtitle">Seu estoque, suas vendas, tudo em um só lugar.</p>
 
-        <form onSubmit={handleLogin} style={{ width: "100%" }}>
+        <form onSubmit={handleLogin}>
           <div className="auth-field">
             <label htmlFor="input-nome">Nome de usuário</label>
             <input
               id="input-nome"
               type="text"
-              placeholder="Seu nome de acesso"
+              placeholder="Digite seu usuário"
+              autoComplete="username"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               disabled={carregando}
@@ -81,9 +84,10 @@ const Login: React.FC = () => {
             className="auth-btn"
             disabled={carregando || !nome.trim() || pin.length < 10}
           >
-            {carregando ? "Entrando..." : "Entrar no Sistema"}
+            {carregando ? "Entrando..." : "Entrar na minha loja"}
           </button>
         </form>
+        <p className="auth-footnote">Acesso exclusivo para a equipe LajuStore.</p>
       </div>
     </div>
   );

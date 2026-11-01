@@ -4,6 +4,7 @@ import {useNavigate} from "react-router-dom";
 import {api} from "../../utils/axios";
 import {useAuth} from "../../context/AuthContext";
 import "./V6.css";
+import "./V8.css";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
@@ -39,14 +40,14 @@ const downloadCsv=(filename:string,rows:(string|number)[][])=>{
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 const menus:{id:Tab;label:string;icon:string;gestor?:boolean}[]=[
- {id:"inicio",label:"Dashboard",icon:"▦"},
- {id:"estoque",label:"Estoque",icon:"▤"},
- {id:"pdv",label:"Vendas / PDV",icon:"◈"},
- {id:"clientes",label:"Clientes",icon:"♧"},
- {id:"financeiro",label:"Financeiro",icon:"◎",gestor:true},
- {id:"fornecedores",label:"Fornecedores",icon:"▣",gestor:true},
- {id:"relatorios",label:"Relatórios",icon:"▥",gestor:true},
- {id:"config",label:"Configurações",icon:"⚙",gestor:true}
+ {id:"inicio",label:"Dashboard",icon:"space_dashboard"},
+ {id:"estoque",label:"Estoque",icon:"checkroom"},
+ {id:"pdv",label:"Vendas / PDV",icon:"point_of_sale"},
+ {id:"clientes",label:"Clientes",icon:"groups"},
+ {id:"financeiro",label:"Financeiro",icon:"account_balance_wallet",gestor:true},
+ {id:"fornecedores",label:"Fornecedores",icon:"local_shipping",gestor:true},
+ {id:"relatorios",label:"Relatórios",icon:"monitoring",gestor:true},
+ {id:"config",label:"Configurações",icon:"settings",gestor:true}
 ];
 
 export default function LajuStoreV6(){
@@ -54,6 +55,13 @@ export default function LajuStoreV6(){
  const {operador,logout}=useAuth();
  const manager=operador?.role==="gestor";
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
+ const [navOpen,setNavOpen]=useState(false);
+ useEffect(()=>{
+  if(!navOpen)return;
+  const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==="Escape")setNavOpen(false);};
+  document.addEventListener("keydown",closeOnEscape);
+  return ()=>document.removeEventListener("keydown",closeOnEscape);
+ },[navOpen]);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const [products,setProducts]=useState<Product[]>([]),[clients,setClients]=useState<Client[]>([]),[orders,setOrders]=useState<Order[]>([]);
  const [pendentes,setPendentes]=useState<Pending[]>([]),[pendingPayment,setPendingPayment]=useState("pix"),[pendingFilter,setPendingFilter]=useState("todos");
@@ -112,7 +120,7 @@ export default function LajuStoreV6(){
   try{await task();setNotice(success);await refresh();}
   catch(e){setError(errorMessage(e));}finally{setBusy(false);}
  };
- const go=(target:Tab)=>{setNotice("");setError("");setTab(target);};
+ const go=(target:Tab)=>{setNotice("");setError("");setTab(target);setNavOpen(false);};
  const variants=useMemo(()=>products.flatMap(p=>p.variantes.map(v=>({...v,produto:p.nome,preco:Number(p.preco),custo:Number(p.custo||0)}))),[products]);
  const cartTotal=cart.reduce((s,i)=>s+i.quantidade*i.preco,0);
  const pendingShown=pendentes.filter(p=>pendingFilter==="todos"||p.canal===pendingFilter);
@@ -236,17 +244,32 @@ export default function LajuStoreV6(){
   setUserName("");setUserPassword("");
  },"Funcionário cadastrado.")};
 
- return <div className="lz-shell">
-  <aside className="lz-sidebar">
-   <div className="lz-brand"><span className="lz-brand-mark">✦</span><div><strong>LajuStore</strong><small>GESTÃO DA LOJA</small></div></div>
+ return <div className={`lz-shell${navOpen?" lz-drawer-open":""}`}>
+  <button type="button" className="lz-drawer-backdrop" aria-label="Fechar menu de navegação" tabIndex={navOpen?0:-1} onClick={()=>setNavOpen(false)} />
+  <aside id="lz-navigation" className="lz-sidebar" aria-label="Menu completo da LajuStore">
+   <div className="lz-brand">
+    <img className="lz-brand-logo" src="/brand/laju-store-logo.jpg" width="60" height="60" alt="Logo Laju Store" />
+    <div className="lz-brand-text"><strong>LajuStore</strong><small>GESTÃO DA LOJA</small></div>
+    <button type="button" className="lz-close-menu" aria-label="Fechar menu" onClick={()=>setNavOpen(false)}>
+     <span className="material-symbols-outlined" aria-hidden="true">close</span>
+    </button>
+   </div>
    <div className="lz-side-label">MENU PRINCIPAL</div>
-   <nav aria-label="Menu da LajuStore">
-    {menus.filter(m=>!m.gestor||manager).map(m=><button key={m.id} type="button" className={tab===m.id?"selected":""} onClick={()=>go(m.id)}><span className="lz-menu-icon" aria-hidden>{m.icon}</span>{m.label}</button>)}
+   <nav aria-label="Módulos da LajuStore">
+    {menus.filter(m=>!m.gestor||manager).map(m=><button key={m.id} type="button" className={tab===m.id?"selected":""} aria-current={tab===m.id?"page":undefined} onClick={()=>go(m.id)}><span className="material-symbols-outlined lz-menu-icon" aria-hidden="true">{m.icon}</span>{m.label}</button>)}
    </nav>
    <div className="lz-side-bottom"><div className="lz-profile"><div className="lz-avatar">{operador?.nome?.charAt(0).toUpperCase()||"L"}</div><div><strong>{operador?.nome}</strong><small>{manager?"Administradora":"Funcionária"}</small></div></div>
-   <button type="button" className="lz-logout" onClick={signOut}>Sair da conta ↗</button></div>
+   <button type="button" className="lz-logout" onClick={signOut}><span className="material-symbols-outlined" aria-hidden="true">logout</span> Sair da conta</button></div>
   </aside>
   <main className="lz-main">
+   <div className="lz-mobile-topbar">
+    <button className="lz-menu-trigger" type="button" aria-label="Abrir menu de navegação" aria-expanded={navOpen} aria-controls="lz-navigation" onClick={()=>setNavOpen(true)}>
+     <span className="material-symbols-outlined" aria-hidden="true">menu</span>
+    </button>
+    <img className="lz-mobile-logo" src="/brand/laju-store-logo.jpg" width="40" height="40" alt="Logo Laju Store" />
+    <strong>LajuStore</strong>
+    <span className="lz-mobile-welcome">Olá, {operador?.nome?.split(" ")[0]||"equipe"}!</span>
+   </div>
    <div className="lz-top"><div><div className="lz-overline">LAJUSTORE / GESTÃO</div><h1>{menus.find(x=>x.id===tab)?.label}</h1><p>Loja física, WhatsApp e Instagram • tudo em um só lugar</p></div>
     <div className="lz-top-right"><span className="lz-live"><i/>Sistema online</span><button className="lz-btn lz-outline" onClick={()=>void refresh()} disabled={loading}>↻ Atualizar</button></div></div>
    {error&&<div role="alert" className="lz-alert">{error}</div>}
@@ -459,5 +482,17 @@ export default function LajuStoreV6(){
      <button className="lz-btn" disabled={busy}>Atualizar senha</button></form></section>
    </div>}
   </main>
+  <nav className="lz-mobile-bottom-nav" aria-label="Navegação rápida">
+   {menus.filter(m=>["inicio","estoque","pdv","clientes"].includes(m.id)).map(m=>
+    <button key={m.id} type="button" aria-label={m.label} aria-current={tab===m.id?"page":undefined}
+      className={tab===m.id?"selected":""} onClick={()=>go(m.id)}>
+     <span className="material-symbols-outlined" aria-hidden="true">{m.icon}</span>
+     <small>{m.id==="pdv"?"Vendas":m.label}</small>
+    </button>
+   )}
+   <button type="button" aria-label="Abrir todos os módulos" aria-expanded={navOpen} onClick={()=>setNavOpen(true)}>
+    <span className="material-symbols-outlined" aria-hidden="true">more_horiz</span><small>Mais</small>
+   </button>
+  </nav>
  </div>;
 }
