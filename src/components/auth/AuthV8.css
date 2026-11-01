@@ -1,0 +1,149 @@
+/* LajuStore V8 — login alinhado à logo original e ao design rosé. */
+.auth-page{
+  --auth-rose:#f0b1aa;
+  --auth-action:#a2475b;
+  --auth-action-hover:#82364b;
+  --auth-ink:#35252d;
+  --auth-muted:#77636c;
+  --auth-border:#edd5d3;
+  min-height:100vh;
+  min-height:100dvh;
+  padding:28px 16px;
+  background:
+    radial-gradient(circle at 9% 9%,rgba(240,177,170,.42),transparent 34%),
+    radial-gradient(circle at 91% 91%,rgba(240,177,170,.24),transparent 36%),
+    linear-gradient(145deg,#fff8f6 0%,#fffdfb 58%,#fdf1ef 100%);
+  color:var(--auth-ink);
+  font-family:Inter,"Segoe UI",system-ui,sans-serif;
+}
+.auth-page::before{
+  content:"";position:absolute;
+  inset:0;
+  background-image:linear-gradient(rgba(240,177,170,.055) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(240,177,170,.055) 1px,transparent 1px);
+  background-size:34px 34px;
+  pointer-events:none;
+}
+.auth-page .auth-card{
+  position:relative;
+  isolation:isolate;
+  z-index:1;
+  width:min(100%,430px);
+  max-width:430px;
+  padding:34px clamp(22px,5vw,42px) 25px;
+  background:rgba(255,255,255,.96);
+  border:1px solid var(--auth-border);
+  border-radius:23px;
+  box-shadow:0 20px 70px rgba(101,43,57,.13),0 4px 12px rgba(101,43,57,.05);
+  color:var(--auth-ink);
+}
+.auth-page .auth-logo{
+  width:106px;height:106px;
+  background:var(--auth-rose);
+  border-radius:22px;
+  display:block;
+  margin:0 auto 21px;
+  overflow:hidden;
+  box-shadow:0 7px 17px rgba(150,81,89,.18);
+}
+.auth-page .auth-logo img{
+  display:block;width:100%;height:100%;object-fit:cover;
+}
+.auth-page .auth-eyebrow{
+  color:var(--auth-action);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:2.1px;
+  text-align:center;
+  margin:0 0 10px;
+}
+.auth-page .auth-title{
+  font-size:clamp(22px,5vw,27px);
+  font-weight:800;
+  line-height:1.23;
+  letter-spacing:-.85px;
+  color:var(--auth-ink);
+  text-align:center;
+  margin:0 0 10px;
+}
+.auth-page .auth-subtitle{
+  color:var(--auth-muted);
+  font-size:13.5px;line-height:1.55;text-align:center;
+  max-width:300px;margin:0 auto 29px;
+}
+.auth-page .auth-card form{display:block;width:100%}
+.auth-page .auth-field{margin:0 0 19px}
+.auth-page .auth-field label{
+  color:#665158;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:1.15px;
+  margin-bottom:9px;
+}
+.auth-page .auth-field input,
+.auth-page .auth-field input[type="password"],
+.auth-page .auth-field input[type="text"]{
+  width:100%;height:49px;min-height:49px;
+  padding:12px 15px;
+  background:#fffbfa;
+  border:1px solid var(--auth-border);
+  border-radius:11px;
+  color:var(--auth-ink);
+  color-scheme:light;
+  font-size:16px;
+  outline:0;
+  box-shadow:none;
+}
+.auth-page .auth-field input::placeholder{color:#a58f96;opacity:1}
+.auth-page .auth-field input:focus{
+  border-color:var(--auth-action);
+  outline:2px solid rgba(162,71,91,.18);
+  outline-offset:1px;
+  box-shadow:0 0 0 3px rgba(162,71,91,.09);
+}
+.auth-page .auth-field input:disabled{opacity:.65}
+.auth-page .auth-btn{
+  width:100%;min-height:50px;
+  margin-top:5px;
+  background:var(--auth-action);
+  color:white;
+  border:none;
+  border-radius:12px;
+  font-size:15px;font-weight:800;
+  letter-spacing:.1px;
+  box-shadow:0 5px 12px rgba(162,71,91,.17);
+}
+.auth-page .auth-btn:hover:not(:disabled){background:var(--auth-action-hover)}
+.auth-page .auth-btn:disabled{opacity:.55;box-shadow:none}
+.auth-page .auth-btn:focus-visible{
+  outline:2px solid var(--auth-action-hover);
+  outline-offset:3px;
+}
+.auth-page .auth-erro{
+  background:#fff0f1;color:#963b4b;
+  border:1px solid #f3cdd0;
+  font-size:12.5px;line-height:1.45;
+  margin:4px 0 14px;
+  border-radius:9px;
+}
+.auth-page .auth-footnote{
+  color:#937e86;font-size:11px;
+  line-height:1.4;
+  text-align:center;
+  margin:25px 0 0;
+}
+@media(max-width:480px){
+  .auth-page{padding:16px 12px}
+  .auth-page .auth-card{
+    border-radius:18px;
+    padding:27px 22px 24px;
+  }
+  .auth-page .auth-logo{width:92px;height:92px;border-radius:18px;margin-bottom:18px}
+  .auth-page .auth-subtitle{margin-bottom:22px}
+}
+@media(max-height:600px) and (min-width:550px){
+  .auth-page{justify-content:flex-start}
+}
+@media(prefers-reduced-motion:reduce){
+  .auth-page *{transition:none!important}
+}
