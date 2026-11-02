@@ -16,7 +16,7 @@ type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"rela
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
 type Product = {id:number;nome:string;categoria:string|null;descricao?:string|null;preco:string;custo?:string|null;ativo:boolean;variantes:Variant[]};
 type Client = {id:number;nome:string;telefone:string|null;instagram:string|null};
-type Order = {id:number;cliente?:string|null;canal:string;status:string;total:string;desconto?:string;forma_pagamento?:string;criado_em:string};
+type Order = {id:number;cliente?:string|null;canal:string;status:string;total:string;desconto?:string;forma_pagamento?:string;criado_em:string;cancelamento_reversivel?:boolean};
 type Supplier = {id:number;nome:string;telefone?:string|null;email?:string|null;observacao?:string|null};
 type Purchase = {id:number;fornecedor:string|null;total:string;criado_em:string};
 type Entry = {id:number;tipo:"entrada"|"saida";categoria:string;descricao:string;valor:string;status:string;data_movimento:string};
@@ -102,6 +102,10 @@ export default function LajuStoreV6(){
  },[navOpen]);
  const [error,setError]=useState(""),[notice,setNotice]=useState("");
  const [products,setProducts]=useState<Product[]>([]),[clients,setClients]=useState<Client[]>([]),[orders,setOrders]=useState<Order[]>([]);
+ const [undoTarget,setUndoTarget]=useState<Order|null>(null);
+ const [undoReason,setUndoReason]=useState("Cancelamento realizado por engano");
+ const [undoNoRefund,setUndoNoRefund]=useState(false);
+ const [undoError,setUndoError]=useState("");
  const [pendentes,setPendentes]=useState<Pending[]>([]),[pendingPayment,setPendingPayment]=useState("pix"),[pendingFilter,setPendingFilter]=useState("todos");
  const [suppliers,setSuppliers]=useState<Supplier[]>([]),[purchases,setPurchases]=useState<Purchase[]>([]);
  const [entries,setEntries]=useState<Entry[]>([]),[financeSummary,setFinanceSummary]=useState({entradas:0,saidas:0,pendentes:0});
@@ -182,7 +186,7 @@ export default function LajuStoreV6(){
   catch(e){setError(errorMessage(e));}finally{setBusy(false);}
  };
  const go=(target:Tab)=>{
-  setNotice("");setError("");setTab(target);setNavOpen(false);
+  setNotice("");setError("");setTab(target);setNavOpen(false);setUndoTarget(null);
   if(target==="pdv")setPdvMobileView("nova");
   if(target==="clientes")setClientMobileView("lista");
   window.scrollTo({top:0,behavior:"auto"});
@@ -368,6 +372,34 @@ export default function LajuStoreV6(){
  const cancelPending=(order:Pending)=>{
   if(!window.confirm(`Cancelar o pedido pendente #${order.id}? Nenhuma peça será retirada do estoque.`))return;
   void run(async()=>{await api.post(`/api/v7/pendentes/${order.id}/cancelar`);},"Pedido pendente cancelado.");
+ };
+
+ const openUndoCancel=(order:Order)=>{
+  if(!manager||busy||order.status!=="cancelado"||!order.cancelamento_reversivel)return;
+  setUndoTarget(order);
+  setUndoReason("Cancelamento realizado por engano");
+  setUndoNoRefund(false);
+  setUndoError("");
+ };
+ const submitUndoCancel=async(e:FormEvent)=>{
+  e.preventDefault();
+  if(!manager||!undoTarget||busy)return;
+  const reason=undoReason.trim();
+  if(reason.length<8||reason.length>240||!undoNoRefund){
+   setUndoError("Descreva o motivo (8 a 240 caracteres) e confirme que não houve devolução real de dinheiro.");
+   return;
+  }
+  setBusy(true);setError("");setNotice("");setUndoError("");
+  try{
+   await api.post(`/api/v9/vendas/${undoTarget.id}/desfazer-cancelamento`,{
+    motivo:reason,confirmar_sem_devolucao:true
+   });
+   setUndoTarget(null);setUndoNoRefund(false);setPdvMobileView("vendas");
+   await refresh();
+   setCreditRefreshKey(key=>key+1);
+   setNotice("Cancelamento desfeito com segurança. A venda voltou ao histórico, o estoque foi atualizado e o ajuste financeiro ficou registrado.");
+  }catch(error){setUndoError(errorMessage(error));}
+  finally{setBusy(false);}
  };
  const saveClient=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
   const payload={nome:clientName,telefone:clientPhone,instagram:clientInstagram};
@@ -675,7 +707,7 @@ export default function LajuStoreV6(){
       </div>
      </section>
      <section className="lz-panel lz-pdv-sales-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
-      {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento==="crediario"?"Conta da cliente":o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.forma_pagamento==="crediario"&&o.status==="pago"?"lz-crediario-status":o.status==="pago"?"lz-good":"lz-danger"}>{o.forma_pagamento==="crediario"&&o.status==="pago"?"Crediário":o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
+      {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento==="crediario"?"Conta da cliente":o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.forma_pagamento==="crediario"&&o.status==="pago"?"lz-crediario-status":o.status==="pago"?"lz-good":"lz-danger"}>{o.forma_pagamento==="crediario"&&o.status==="pago"?"Crediário":o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" disabled={busy} onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}{o.status==="cancelado"&&o.cancelamento_reversivel&&<button type="button" className="lz-link lz-undo-action" disabled={busy} onClick={()=>openUndoCancel(o)}>Desfazer cancelamento</button>}</td>}</tr>)}
       {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div>
       <div className="lz-mobile-sales-cards">
        {orders.length===0?<p className="lz-mini-empty">Ainda não há vendas registradas.</p>:
@@ -685,10 +717,34 @@ export default function LajuStoreV6(){
          <p>{o.cliente||"Cliente sem cadastro"}</p>
          <div className="lz-mobile-sales-footer">
           <span className={o.forma_pagamento==="crediario"&&o.status==="pago"?"lz-crediario-status":o.status==="pago"?"lz-good":"lz-danger"}>{o.forma_pagamento==="crediario"&&o.status==="pago"?"Crediário":o.status}</span>
-          {manager&&o.status==="pago"&&<button type="button" className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar venda</button>}
+          {manager&&o.status==="pago"&&<button type="button" className="lz-link lz-danger" disabled={busy} onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar venda</button>}
+          {manager&&o.status==="cancelado"&&o.cancelamento_reversivel&&<button type="button" className="lz-link lz-undo-action" disabled={busy} onClick={()=>openUndoCancel(o)}>Desfazer cancelamento</button>}
          </div>
         </article>)}
       </div></section>
+    {manager&&undoTarget&&<div className="lz-undo-overlay">
+     <section className="lz-undo-dialog" role="dialog" aria-modal="true" aria-labelledby="lz-undo-title">
+      <div className="lz-undo-heading"><span className="material-symbols-outlined" aria-hidden="true">undo</span>
+       <div><h2 id="lz-undo-title">Desfazer cancelamento</h2><p>Venda #${undoTarget.id} · ${cash(undoTarget.total)}</p></div></div>
+      <p>As peças serão retiradas novamente do estoque. A venda voltará ao histórico como concluída e o sistema registrará a compensação do estorno anterior, sem cobrar a cliente.</p>
+      {undoTarget.forma_pagamento==="crediario"&&<p className="lz-undo-alert">A conta da cliente será reaberta apenas se não houver pagamentos registrados.</p>}
+      <p className="lz-undo-alert"><strong>Importante:</strong> use esta opção somente se o cancelamento foi um engano e <strong>nenhum dinheiro foi realmente devolvido à cliente.</strong> Se houve devolução real, não restaure por este botão: registre uma nova venda e o novo pagamento com orientação da administradora.</p>
+      <form className="lz-undo-form" onSubmit={e=>void submitUndoCancel(e)}>
+       <label>Motivo do desfazimento
+        <textarea required minLength={8} maxLength={240} rows={3} value={undoReason} onChange={e=>setUndoReason(e.target.value)} placeholder="Por que a venda precisa ser restaurada?"/>
+       </label>
+       <label className="lz-undo-checkbox">
+        <input type="checkbox" required checked={undoNoRefund} onChange={e=>setUndoNoRefund(e.target.checked)}/>
+        <span>Conferi com a loja: nenhuma devolução real de dinheiro foi realizada para esta venda.</span>
+       </label>
+       {undoError&&<p role="alert" className="lz-undo-error">{undoError}</p>}
+       <div className="lz-undo-actions">
+        <button type="button" className="lz-btn lz-outline" disabled={busy} onClick={()=>setUndoTarget(null)}>Voltar sem alterar</button>
+        <button type="submit" className="lz-btn" disabled={busy||!undoNoRefund||undoReason.trim().length<8}>Confirmar restauração</button>
+       </div>
+      </form>
+     </section>
+    </div>}
    </div>}
 
    {tab==="clientes"&&<div className={`lz-content lz-mobile-clients lz-clients-mode-${clientMobileView}`}>
