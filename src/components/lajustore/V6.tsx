@@ -10,6 +10,7 @@ import "./V8.css";
 import "./MobileFix.css";
 import "./MobilePdvClients.css";
 import "./Operacao.css";
+import CrediarioPanel from "./CrediarioPanel";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
@@ -81,10 +82,12 @@ export default function LajuStoreV6(){
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [navOpen,setNavOpen]=useState(false);
  const [monthlyExport,setMonthlyExport]=useState(()=>today().slice(0,7));
- const [pdvMobileView,setPdvMobileView]=useState<"nova"|"pendentes"|"vendas">("nova");
- const [clientMobileView,setClientMobileView]=useState<"lista"|"formulario"|"historico">("lista");
+ const [pdvMobileView,setPdvMobileView]=useState<"nova"|"pendentes"|"vendas"|"crediario">("nova");
+ const [clientMobileView,setClientMobileView]=useState<"lista"|"formulario"|"historico"|"crediario">("lista");
  const [pdvSearch,setPdvSearch]=useState("");
  const [clientSearch,setClientSearch]=useState("");
+ const [selectedCreditClient,setSelectedCreditClient]=useState<number|null>(null);
+ const [creditRefreshKey,setCreditRefreshKey]=useState(0);
  const [stockMobileView,setStockMobileView]=useState<"lista"|"cadastro">("lista");
  useEffect(()=>{
   if(!navOpen)return;
@@ -119,6 +122,7 @@ export default function LajuStoreV6(){
  const [variantEdit,setVariantEdit]=useState<Variant|null>(null);
  const [sellVariant,setSellVariant]=useState(""),[sellQuantity,setSellQuantity]=useState("1"),[cart,setCart]=useState<CartItem[]>([]);
  const [sellClient,setSellClient]=useState(""),[sellChannel,setSellChannel]=useState("loja"),[payment,setPayment]=useState("pix"),[discount,setDiscount]=useState("0"),[sellNote,setSellNote]=useState("");
+ const [creditInstallments,setCreditInstallments]=useState("2"),[creditFirstDue,setCreditFirstDue]=useState(today()),[creditDays,setCreditDays]=useState("30");
  const [clientName,setClientName]=useState(""),[clientPhone,setClientPhone]=useState(""),[clientInstagram,setClientInstagram]=useState("");
  const [editingClient,setEditingClient]=useState<number|null>(null),[clientHistory,setClientHistory]=useState<Order[]>([]),[historyTitle,setHistoryTitle]=useState("");
  const [supplierName,setSupplierName]=useState(""),[supplierPhone,setSupplierPhone]=useState(""),[supplierEmail,setSupplierEmail]=useState("");
@@ -174,7 +178,7 @@ export default function LajuStoreV6(){
  useEffect(()=>{void refresh();},[refresh]);
  const run=async(task:()=>Promise<void>,success:string)=>{
   setBusy(true);setNotice("");setError("");
-  try{await task();setNotice(success);await refresh();}
+  try{await task();setNotice(success);await refresh();setCreditRefreshKey(key=>key+1);}
   catch(e){setError(errorMessage(e));}finally{setBusy(false);}
  };
  const go=(target:Tab)=>{
@@ -332,12 +336,17 @@ export default function LajuStoreV6(){
  };
  const sell=(e:FormEvent)=>{e.preventDefault();if(cart.length===0){setError("Adicione ao menos uma peça ao carrinho.");return;}
   if(safeDiscount<0||safeDiscount>cartTotal){setError("Desconto inválido.");return;}
+  const isCredit=payment==="crediario";
+  if(isCredit&&!manager){setError("Somente a administradora pode vender no crediário.");return;}
+  if(isCredit&&!sellClient){setError("Selecione uma cliente cadastrada para a conta em aberto.");return;}
+  if(isCredit&&(cartTotal-safeDiscount<=0)){setError("A venda no crediário precisa ter saldo a receber.");return;}
+  if(isCredit&&!window.confirm(`Confirmar entrega de ${cartCount} peças no crediário de ${clients.find(c=>c.id===Number(sellClient))?.nome||"cliente"} por ${cash(cartTotal-safeDiscount)}? O estoque será baixado agora, mas o caixa só receberá quando os pagamentos forem registrados.`))return;
   void run(async()=>{
-   const {data}=await api.post("/api/v6/vendas",{cliente_id:sellClient?Number(sellClient):null,canal:sellChannel,forma_pagamento:payment,desconto:safeDiscount,observacao:sellNote,
+   await api.post("/api/v6/vendas",{cliente_id:sellClient?Number(sellClient):null,canal:sellChannel,forma_pagamento:payment,desconto:safeDiscount,observacao:sellNote,
+    ...(isCredit?{numero_parcelas:Number(creditInstallments),primeiro_vencimento:creditFirstDue,intervalo_dias:Number(creditDays)}:{}),
     itens:cart.map(x=>({variante_id:x.id,quantidade:x.quantidade}))});
-   setCart([]);setDiscount("0");setSellNote("");setPdvMobileView("vendas");
-   setNotice(`Venda #${data.id} registrada!`);
-  },"Venda concluída e estoque atualizado.");
+   setCart([]);setDiscount("0");setSellNote("");setPayment("pix");setPdvMobileView(isCredit?"crediario":"vendas");
+  },isCredit?"Conta da cliente aberta. Estoque baixado, sem entrada antecipada no caixa. Registre os Pix quando recebê-los.":"Venda concluída e estoque atualizado.");
  };
  const savePending=()=>{
   if(!cart.length || safeDiscount<0 || safeDiscount>cartTotal){setError("Confira as peças e o desconto.");return;}
@@ -366,6 +375,12 @@ export default function LajuStoreV6(){
   else await api.post("/api/lajustore/clientes",payload);
   setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");setClientMobileView("lista");
  },"Cliente salvo.")};
+ const showClientCredit=(client:Client)=>{
+  if(!manager)return;
+  setSelectedCreditClient(client.id);setClientMobileView("crediario");
+  setError("");setNotice("");
+  window.scrollTo({top:0,behavior:"smooth"});
+ };
  const showClientOrders=async(client:Client)=>{
   try{
    setError("");
@@ -549,6 +564,9 @@ export default function LajuStoreV6(){
      <button type="button" className={pdvMobileView==="vendas"?"active":""} aria-pressed={pdvMobileView==="vendas"} onClick={()=>setPdvMobileView("vendas")}>
       <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>Histórico
      </button>
+     {manager&&<button type="button" className={pdvMobileView==="crediario"?"active":""} aria-pressed={pdvMobileView==="crediario"} onClick={()=>setPdvMobileView("crediario")}>
+      <span className="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span>Em aberto
+     </button>}
     </div>
     <div className="lz-two lz-pdv-create-area"><section className="lz-panel"><h2>Nova venda</h2><p>Escolha as peças do pedido, depois registre o pagamento recebido.</p>
      <div className="lz-form lz-pdv-desktop-picker"><label className="lz-span-2">Roupa e variação<select value={sellVariant} onChange={e=>setSellVariant(e.target.value)}><option value="">Selecionar roupa</option>{variants.filter(v=>v.quantidade>0).map(v=><option key={v.id} value={v.id}>{v.produto} · {v.tamanho} · {v.cor} | {cash(v.preco)} ({v.quantidade})</option>)}</select></label>
@@ -592,16 +610,29 @@ export default function LajuStoreV6(){
     </section><section className="lz-panel"><h2>Concluir venda</h2>
       <form className="lz-form" onSubmit={sell}>
        <label>Canal<select value={sellChannel} onChange={e=>setSellChannel(e.target.value)}><option value="loja">Loja física</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option></select></label>
-       <label>Pagamento recebido<select value={payment} onChange={e=>setPayment(e.target.value)}><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option></select></label>
-       <label className="lz-span-2">Cliente (opcional)<select value={sellClient} onChange={e=>setSellClient(e.target.value)}><option value="">Venda sem cadastro</option>{clients.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
+       <label>{payment==="crediario"?"Forma de pagamento":"Pagamento recebido"}<select value={payment} onChange={e=>setPayment(e.target.value)}><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option>{manager&&<option value="crediario">Conta do cliente / Crediário</option>}</select></label>
+       <label className="lz-span-2">{payment==="crediario"?"Cliente (obrigatória para crediário)":"Cliente (opcional)"}<select required={payment==="crediario"} value={sellClient} onChange={e=>setSellClient(e.target.value)}><option value="">{payment==="crediario"?"Selecione a cliente":"Venda sem cadastro"}</option>{clients.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
+       {payment==="crediario"&&manager&&<div className="lz-span-2 lz-crediario-installments">
+        <strong>Conta da cliente / Parcelamento</strong>
+        <p>A cliente leva as roupas agora. O estoque será baixado, mas o valor só entrará no caixa quando cada Pix for confirmado.</p>
+        <label>Quantidade de parcelas<select value={creditInstallments} onChange={e=>setCreditInstallments(e.target.value)}>
+         {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n} {n===1?"parcela":"parcelas"}</option>)}
+        </select></label>
+        <label>Primeiro vencimento<input type="date" required value={creditFirstDue} onChange={e=>setCreditFirstDue(e.target.value)}/></label>
+        <label>Intervalo entre parcelas<select value={creditDays} onChange={e=>setCreditDays(e.target.value)}>
+         <option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option>
+        </select></label>
+        <p className="lz-crediario-installments-summary">Total em aberto: {cash(Math.max(0,cartTotal-safeDiscount))} · {creditInstallments} {Number(creditInstallments)===1?"parcela":"parcelas"}</p>
+       </div>}
        <label>Desconto (R$)<input type="number" min="0" max={cartTotal} step=".01" value={discount} onChange={e=>setDiscount(e.target.value)}/></label>
        <label className="lz-span-2">Observações<input value={sellNote} onChange={e=>setSellNote(e.target.value)} placeholder="Retirada, entrega, observações"/></label>
        <div className="lz-total lz-span-2"><span>Total da venda</span><strong>{cash(Math.max(0,cartTotal-safeDiscount))}</strong></div>
-       <button disabled={busy||cart.length===0} className="lz-btn lz-span-2">Confirmar venda e baixar estoque</button>
+       <button disabled={busy||cart.length===0||(payment==="crediario"&&!sellClient)} className="lz-btn lz-span-2">{payment==="crediario"?"Abrir conta da cliente e baixar estoque":"Confirmar venda e baixar estoque"}</button>
        <button type="button" disabled={busy||cart.length===0} className="lz-btn lz-outline lz-span-2" onClick={savePending}>Salvar pedido aguardando pagamento</button>
       </form>
-      <p className="lz-hint">Venda confirmada: baixa imediata. Pedido pendente: sem baixa e sem reserva; confirme a disponibilidade no pagamento. O sistema registra, mas não processa pagamentos.</p>
+      <p className="lz-hint">Venda confirmada: baixa imediata. Crediário: baixa imediata, sem lançar dinheiro antes de receber. Pedido pendente: sem baixa nem reserva. A LajuStore não verifica Pix automaticamente.</p>
      </section></div>
+     {manager&&<div className="lz-pdv-crediario-panel"><CrediarioPanel refreshKey={creditRefreshKey}/></div>}
      <section className="lz-panel lz-pdv-pending-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento <span className="lz-chip">{pendentes.length}</span></h2>
       <label className="lz-payment-select">Canal
        <select value={pendingFilter} onChange={e=>setPendingFilter(e.target.value)}>
@@ -644,16 +675,16 @@ export default function LajuStoreV6(){
       </div>
      </section>
      <section className="lz-panel lz-pdv-sales-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
-      {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
+      {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento==="crediario"?"Conta da cliente":o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.forma_pagamento==="crediario"&&o.status==="pago"?"lz-crediario-status":o.status==="pago"?"lz-good":"lz-danger"}>{o.forma_pagamento==="crediario"&&o.status==="pago"?"Crediário":o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
       {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div>
       <div className="lz-mobile-sales-cards">
        {orders.length===0?<p className="lz-mini-empty">Ainda não há vendas registradas.</p>:
         orders.map(o=><article key={o.id} className="lz-mobile-order-card">
          <div className="lz-mobile-order-head"><strong>Venda #{o.id}</strong><span>{cash(o.total)}</span></div>
-         <p>{date(o.criado_em)} · {o.canal} · {o.forma_pagamento||"Pagamento não informado"}</p>
+         <p>{date(o.criado_em)} · {o.canal} · {o.forma_pagamento==="crediario"?"Conta da cliente":o.forma_pagamento||"Pagamento não informado"}</p>
          <p>{o.cliente||"Cliente sem cadastro"}</p>
          <div className="lz-mobile-sales-footer">
-          <span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span>
+          <span className={o.forma_pagamento==="crediario"&&o.status==="pago"?"lz-crediario-status":o.status==="pago"?"lz-good":"lz-danger"}>{o.forma_pagamento==="crediario"&&o.status==="pago"?"Crediário":o.status}</span>
           {manager&&o.status==="pago"&&<button type="button" className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar venda</button>}
          </div>
         </article>)}
@@ -671,6 +702,11 @@ export default function LajuStoreV6(){
      }}>
       <span className="material-symbols-outlined" aria-hidden="true">person_add</span> Novo cliente
      </button>
+     {manager&&<button type="button" className={clientMobileView==="crediario"?"active":""} aria-pressed={clientMobileView==="crediario"} onClick={()=>{
+      setSelectedCreditClient(null);setClientMobileView("crediario");
+     }}>
+      <span className="material-symbols-outlined" aria-hidden="true">payments</span>Em aberto
+     </button>}
     </div>
     <section className="lz-panel lz-client-form-panel"><h2>{editingClient?"Editar cliente":"Cadastrar cliente"}</h2>
     <form className="lz-form lz-form-wide" onSubmit={saveClient}><label>Nome<input required value={clientName} onChange={e=>setClientName(e.target.value)}/></label><label>WhatsApp / telefone<input value={clientPhone} onChange={e=>setClientPhone(e.target.value)}/></label><label>Instagram<input value={clientInstagram} onChange={e=>setClientInstagram(e.target.value)} placeholder="@usuario"/></label><button className="lz-btn" disabled={busy}>{editingClient?"Salvar cliente":"Cadastrar cliente"}</button>
@@ -685,7 +721,7 @@ export default function LajuStoreV6(){
        placeholder="Nome, WhatsApp ou Instagram" autoComplete="off"/>
      </div>
      <div className="lz-table-wrap"><table><thead><tr><th>Nome</th><th>Contato</th><th>Instagram</th><th>Ações</th></tr></thead><tbody>
-    {filteredClients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>startEditClient(c)}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button></td></tr>)}
+    {filteredClients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>startEditClient(c)}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button>{manager&&<button className="lz-link" onClick={()=>showClientCredit(c)}>Em aberto</button>}</td></tr>)}
     {filteredClients.length===0&&<tr><td colSpan={4} className="lz-empty">Nenhum cliente encontrado.</td></tr>}</tbody></table></div>
     <div className="lz-mobile-client-cards">
      {filteredClients.length===0?<p className="lz-mini-empty">Nenhum cliente encontrado. Use "Novo cliente" para cadastrar.</p>:
@@ -705,11 +741,17 @@ export default function LajuStoreV6(){
           <span className="material-symbols-outlined" aria-hidden="true">history</span> Compras</button>
          <button type="button" onClick={()=>startEditClient(c)}>
           <span className="material-symbols-outlined" aria-hidden="true">edit</span> Editar</button>
+         {manager&&<button type="button" onClick={()=>showClientCredit(c)}>
+          <span className="material-symbols-outlined" aria-hidden="true">payments</span> Em aberto</button>}
         </div>
        </article>;
       })}
     </div>
     </section>
+    {manager&&<div className="lz-crediario-client-panel"><CrediarioPanel
+      clientId={selectedCreditClient} refreshKey={creditRefreshKey}
+      onBack={()=>{setSelectedCreditClient(null);setClientMobileView("lista");}}
+     /></div>}
     {historyTitle&&<section className="lz-panel lz-client-history-panel">
      <button className="lz-client-back-button" type="button" onClick={()=>setClientMobileView("lista")}>
       <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span> Voltar para clientes

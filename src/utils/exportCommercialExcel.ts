@@ -1,6 +1,6 @@
 /**
  * Gera uma planilha Excel XLSX real, sem bibliotecas externas.
- * O arquivo contém um resumo e as 11 tabelas comerciais exportadas pela API.
+ * O arquivo contém um resumo e as 14 tabelas comerciais exportadas pela API.
  * Todas as células de texto são inline strings (nunca fórmulas).
  * Não há importação/restauração automática a partir da planilha.
  */
@@ -24,7 +24,10 @@ const TABLES: ReadonlyArray<{table: string; title: string; fields: string[]}> = 
  {table:"loja_compras",title:"Compras",fields:["id","fornecedor_id","observacao","total","criado_em","registrado_por"]},
  {table:"loja_compra_itens",title:"Itens de compras",fields:["id","compra_id","variante_id","quantidade","custo_unitario"]},
  {table:"loja_movimentos",title:"Movimentacoes",fields:["id","variante_id","pedido_id","diferenca","motivo","criado_em"]},
- {table:"loja_auditoria_v7",title:"Auditoria V7",fields:["id","usuario_id","entidade","registro_id","operacao","detalhes","criado_em"]}
+ {table:"loja_auditoria_v7",title:"Auditoria V7",fields:["id","usuario_id","entidade","registro_id","operacao","detalhes","criado_em"]},
+ {table:"loja_crediario",title:"Crediario",fields:["id","pedido_id","cliente_id","total","status","observacao","criado_em","registrado_por"]},
+ {table:"loja_crediario_parcelas",title:"Parcelas",fields:["id","crediario_id","numero","valor","vencimento"]},
+ {table:"loja_crediario_pagamentos",title:"Pagamentos crediario",fields:["id","crediario_id","valor","forma_pagamento","observacao","chave_operacao","recebido_em","registrado_por","financeiro_id"]}
 ];
 
 const esc=(value:string)=>value

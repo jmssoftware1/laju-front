@@ -5,7 +5,8 @@ import {makeCommercialWorkbook} from "../src/utils/exportCommercialExcel.ts";
 
 const names=["loja_produtos","loja_variantes","loja_clientes","loja_pedidos",
  "loja_pedido_itens","loja_financeiro","loja_fornecedores","loja_compras",
- "loja_compra_itens","loja_movimentos","loja_auditoria_v7"];
+ "loja_compra_itens","loja_movimentos","loja_auditoria_v7",
+ "loja_crediario","loja_crediario_parcelas","loja_crediario_pagamentos"];
 function fixture(){
  const tables=Object.fromEntries(names.map(name=>[name,[]]));
  tables.loja_produtos=[{id:"1",nome:'=HYPERLINK("https://evil.example","click")',preco:"100.50",custo:"40.00",ativo:true}];
@@ -31,15 +32,15 @@ async function unzipStored(blob){
  assert.equal(view.getUint32(offset,true),0x02014b50,"Diretório central do ZIP presente");
  return entries;
 }
-test("gera XLSX ZIP real com 12 abas (resumo + 11 tabelas comerciais)",async()=>{
+test("gera XLSX ZIP real com 15 abas (resumo + 14 tabelas comerciais)",async()=>{
  const file=makeCommercialWorkbook(fixture());
  assert.equal(file.type,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
  const entries=await unzipStored(file);
  assert.ok(entries["[Content_Types].xml"]);
  assert.ok(entries["xl/workbook.xml"]);
  assert.ok(entries["xl/styles.xml"]);
- assert.ok(entries["xl/worksheets/sheet12.xml"]);
- assert.equal(Object.keys(entries).filter(x=>x.startsWith("xl/worksheets/sheet")).length,12);
+ assert.ok(entries["xl/worksheets/sheet15.xml"]);
+ assert.equal(Object.keys(entries).filter(x=>x.startsWith("xl/worksheets/sheet")).length,15);
  assert.match(entries["xl/workbook.xml"],/name="Financeiro"/);
  assert.match(entries["xl/worksheets/sheet1.xml"],/NÃO é backup restaurável/);
 });
