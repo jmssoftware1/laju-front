@@ -28,7 +28,7 @@ test("exportação pede autorização da API e não confunde com backup",async()
  assert.match(src,/responseType:"blob"/);
  assert.match(src,/if\(!manager \|\| busy\)return/);
  assert.match(src,/URL\.revokeObjectURL/);
- assert.match(src,/NÃO um backup completo/);
+ assert.match(src,/Não recuperam automaticamente o banco/);
 });
 
 test("layout financeiro é responsivo e data respeita fuso comercial",async()=>{

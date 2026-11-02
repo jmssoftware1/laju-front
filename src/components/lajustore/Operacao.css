@@ -135,3 +135,60 @@
 @media(max-width:350px){
  .lz-shell .lz-operation-grid{grid-template-columns:1fr}
 }
+
+
+/* Exportação dos dados comerciais e relatório PDF mensal */
+.lz-shell .lz-export-actions{
+ display:grid;
+ gap:12px;
+ margin:16px 0;
+ padding:16px;
+ border:1px solid var(--lz-border);
+ border-radius:13px;
+ background:#fffaf9;
+}
+.lz-shell .lz-export-actions .lz-operation-export{margin:0}
+.lz-shell .lz-export-actions .lz-hint{margin:0!important}
+.lz-shell .lz-monthly-export-box{
+ display:grid;
+ gap:12px;
+ padding:15px;
+ border:1px solid #edd4d6;
+ border-radius:12px;
+ background:#fff;
+}
+.lz-shell .lz-monthly-export-box label{
+ display:grid;
+ gap:8px;
+ color:var(--lz-ink);
+ font-size:12px;
+ font-weight:800;
+}
+.lz-shell .lz-monthly-export-box input[type="month"]{
+ width:100%;
+ max-width:310px;
+ min-height:46px;
+ padding:10px 12px;
+ border:1px solid #e1cdd0;
+ border-radius:10px;
+ background:white;
+ color:var(--lz-ink);
+ font:inherit;
+ font-size:16px;
+}
+.lz-shell .lz-monthly-export-box button{
+ display:flex;align-items:center;justify-content:center;gap:8px;
+ width:100%;padding-inline:12px;
+ white-space:normal;
+ text-align:center;
+}
+.lz-shell .lz-monthly-export-box .material-symbols-outlined{
+ font-size:20px;flex:none;
+}
+.lz-shell .lz-monthly-export-box input:focus-visible{
+ outline:2px solid var(--lz-rose-deep);outline-offset:2px;
+}
+@media(max-width:760px){
+ .lz-shell .lz-export-actions{padding:12px}
+ .lz-shell .lz-monthly-export-box{padding:12px}
+}
