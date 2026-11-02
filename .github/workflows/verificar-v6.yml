@@ -16,6 +16,7 @@ jobs:
       - run: npx tsc -p tsconfig.app.json --noEmit
       - run: npm run build
       - run: node --test tests/v8-brand.test.mjs
+      - run: node --test tests/login-mostrar-senha.test.mjs
       - run: node --test tests/mobile-fix.test.mjs
       - run: node --test tests/mobile-pdv-clientes.test.mjs
       - run: node --test tests/operacao-entrega.test.mjs
