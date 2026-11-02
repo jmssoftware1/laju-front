@@ -623,7 +623,7 @@ export default function LajuStoreV6(){
          <option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option>
         </select></label>
         <p className="lz-crediario-installments-summary">Total em aberto: {cash(Math.max(0,cartTotal-safeDiscount))} · {creditInstallments} {Number(creditInstallments)===1?"parcela":"parcelas"}</p>
-       </div>
+       </div>}
        <label>Desconto (R$)<input type="number" min="0" max={cartTotal} step=".01" value={discount} onChange={e=>setDiscount(e.target.value)}/></label>
        <label className="lz-span-2">Observações<input value={sellNote} onChange={e=>setSellNote(e.target.value)} placeholder="Retirada, entrega, observações"/></label>
        <div className="lz-total lz-span-2"><span>Total da venda</span><strong>{cash(Math.max(0,cartTotal-safeDiscount))}</strong></div>
