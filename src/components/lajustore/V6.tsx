@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState, type FormEvent} from "react";
 import axios from "axios";
 import {useNavigate} from "react-router-dom";
 import {api} from "../../utils/axios";
+import {formatFinancialDate} from "../../utils/formatFinancialDate";
 import {useAuth} from "../../context/AuthContext";
 import "./V6.css";
 import "./V8.css";
@@ -729,7 +730,7 @@ export default function LajuStoreV6(){
      </form>
     </section>
     <section className="lz-panel"><h2>Movimentações financeiras</h2><div className="lz-table-wrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Status</th><th>Valor</th></tr></thead><tbody>
-    {entries.map(l=><tr key={l.id}><td>{date(l.data_movimento+"T12:00:00")}</td><td>{l.descricao}</td><td>{l.categoria}</td><td>{l.status}</td><td className={l.tipo==="entrada"?"lz-good":"lz-danger"}>{l.tipo==="entrada"?"+":"-"}{cash(l.valor)}</td></tr>)}
+    {entries.map(l=><tr key={l.id}><td>{formatFinancialDate(l.data_movimento)}</td><td>{l.descricao}</td><td>{l.categoria}</td><td>{l.status}</td><td className={l.tipo==="entrada"?"lz-good":"lz-danger"}>{l.tipo==="entrada"?"+":"-"}{cash(l.valor)}</td></tr>)}
     {entries.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhum lançamento financeiro.</td></tr>}</tbody></table></div></section>
    </div>}
 
