@@ -6,6 +6,7 @@ import {useAuth} from "../../context/AuthContext";
 import "./V6.css";
 import "./V8.css";
 import "./MobileFix.css";
+import "./MobilePdvClients.css";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
@@ -29,6 +30,19 @@ const errorMessage=(e:unknown)=>{
  return e instanceof Error ? e.message : "Não foi possível concluir a operação.";
 };
 const today=()=>new Date().toISOString().slice(0,10);
+
+/** Link apenas para telefones brasileiros válidos; nenhum dado é enviado automaticamente. */
+const whatsappCliente=(telefone:string|null)=>{
+ const digits=(telefone||"").replace(/\D/g,"");
+ const phone=(digits.length===10||digits.length===11)?"55"+digits:
+   ((digits.length===12||digits.length===13)&&digits.startsWith("55"))?digits:null;
+ return phone?"https://wa.me/"+phone:null;
+};
+const instagramCliente=(instagram:string|null)=>{
+ const user=(instagram||"").trim().replace(/^@/,"");
+ return /^[a-zA-Z0-9._]{1,30}$/.test(user)?"https://www.instagram.com/"+user+"/":null;
+};
+
 const downloadCsv=(filename:string,rows:(string|number)[][])=>{
  const csv="\uFEFF"+rows.map(row=>row.map(value=>{
   const raw=String(value??"");
@@ -57,6 +71,10 @@ export default function LajuStoreV6(){
  const manager=operador?.role==="gestor";
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [navOpen,setNavOpen]=useState(false);
+ const [pdvMobileView,setPdvMobileView]=useState<"nova"|"pendentes"|"vendas">("nova");
+ const [clientMobileView,setClientMobileView]=useState<"lista"|"formulario"|"historico">("lista");
+ const [pdvSearch,setPdvSearch]=useState("");
+ const [clientSearch,setClientSearch]=useState("");
  const [stockMobileView,setStockMobileView]=useState<"lista"|"cadastro">("lista");
  useEffect(()=>{
   if(!navOpen)return;
@@ -129,6 +147,8 @@ export default function LajuStoreV6(){
  };
  const go=(target:Tab)=>{
   setNotice("");setError("");setTab(target);setNavOpen(false);
+  if(target==="pdv")setPdvMobileView("nova");
+  if(target==="clientes")setClientMobileView("lista");
   window.scrollTo({top:0,behavior:"auto"});
  };
  const beginEditProduct=(p:Product)=>{
@@ -142,6 +162,18 @@ export default function LajuStoreV6(){
  },[variantEdit,tab]);
  const variants=useMemo(()=>products.flatMap(p=>p.variantes.map(v=>({...v,produto:p.nome,preco:Number(p.preco),custo:Number(p.custo||0)}))),[products]);
  const cartTotal=cart.reduce((s,i)=>s+i.quantidade*i.preco,0);
+ const cartCount=cart.reduce((total,item)=>total+item.quantidade,0);
+ const filteredSaleVariants=useMemo(()=>{
+  const query=pdvSearch.trim().toLocaleLowerCase("pt-BR");
+  return variants.filter(v=>v.quantidade>0 && (
+   !query || [v.produto,v.sku,v.cor,v.tamanho].some(value=>value.toLocaleLowerCase("pt-BR").includes(query))
+  )).slice(0,45);
+ },[variants,pdvSearch]);
+ const filteredClients=useMemo(()=>{
+  const query=clientSearch.trim().toLocaleLowerCase("pt-BR");
+  return clients.filter(c=>!query||
+   [c.nome,c.telefone||"",c.instagram||""].some(value=>value.toLocaleLowerCase("pt-BR").includes(query)));
+ },[clients,clientSearch]);
  const pendingShown=pendentes.filter(p=>pendingFilter==="todos"||p.canal===pendingFilter);
  const safeDiscount=Number(discount)||0;
  const categories=useMemo(()=>[...new Set(products.map(p=>p.categoria).filter((v):v is string=>Boolean(v)))].sort(),[products]);
@@ -206,12 +238,37 @@ export default function LajuStoreV6(){
   setCart(prev=>existing?prev.map(x=>x.id===v.id?{...x,quantidade:x.quantidade+q}:x):[...prev,{id:v.id,nome:`${v.produto} · ${v.tamanho} · ${v.cor}`,sku:v.sku,quantidade:q,preco:v.preco}]);
   setError("");setSellVariant("");setSellQuantity("1");
  };
+ const addOneToCart=(variantId:number)=>{
+  const v=variants.find(x=>x.id===variantId);
+  if(!v){setError("A peça selecionada não está disponível.");return;}
+  const existing=cart.find(x=>x.id===variantId)?.quantidade||0;
+  if(existing>=v.quantidade){setError("Você já adicionou toda a quantidade disponível dessa peça.");return;}
+  setCart(items=>existing
+   ?items.map(item=>item.id===variantId?{...item,quantidade:item.quantidade+1}:item)
+   :[...items,{id:v.id,nome:`${v.produto} · ${v.tamanho} · ${v.cor}`,sku:v.sku,quantidade:1,preco:v.preco}]);
+  setError("");
+ };
+ const changeCartQuantity=(variantId:number,difference:number)=>{
+  const item=cart.find(x=>x.id===variantId);
+  const available=variants.find(v=>v.id===variantId)?.quantidade??0;
+  if(!item)return;
+  const next=item.quantidade+difference;
+  if(next>available){setError("O estoque não possui mais unidades dessa variação.");return;}
+  setCart(current=>next<=0?current.filter(x=>x.id!==variantId):
+   current.map(x=>x.id===variantId?{...x,quantidade:next}:x));
+  setError("");
+ };
+ const startEditClient=(c:Client)=>{
+  setEditingClient(c.id);setClientName(c.nome);setClientPhone(c.telefone||"");
+  setClientInstagram(c.instagram||"");setClientMobileView("formulario");
+  window.scrollTo({top:0,behavior:"smooth"});
+ };
  const sell=(e:FormEvent)=>{e.preventDefault();if(cart.length===0){setError("Adicione ao menos uma peça ao carrinho.");return;}
   if(safeDiscount<0||safeDiscount>cartTotal){setError("Desconto inválido.");return;}
   void run(async()=>{
    const {data}=await api.post("/api/v6/vendas",{cliente_id:sellClient?Number(sellClient):null,canal:sellChannel,forma_pagamento:payment,desconto:safeDiscount,observacao:sellNote,
     itens:cart.map(x=>({variante_id:x.id,quantidade:x.quantidade}))});
-   setCart([]);setDiscount("0");setSellNote("");
+   setCart([]);setDiscount("0");setSellNote("");setPdvMobileView("vendas");
    setNotice(`Venda #${data.id} registrada!`);
   },"Venda concluída e estoque atualizado.");
  };
@@ -223,7 +280,7 @@ export default function LajuStoreV6(){
     desconto:safeDiscount,observacao:sellNote,
     itens:cart.map(x=>({variante_id:x.id,quantidade:x.quantidade}))
    });
-   setCart([]);setDiscount("0");setSellNote("");
+   setCart([]);setDiscount("0");setSellNote("");setPdvMobileView("pendentes");
   },"Pedido aguardando pagamento salvo. O estoque não foi reservado.");
  };
  const concludePending=(order:Pending)=>{
@@ -240,11 +297,15 @@ export default function LajuStoreV6(){
   const payload={nome:clientName,telefone:clientPhone,instagram:clientInstagram};
   if(editingClient)await api.patch(`/api/v6/clientes/${editingClient}`,payload);
   else await api.post("/api/lajustore/clientes",payload);
-  setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");
+  setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");setClientMobileView("lista");
  },"Cliente salvo.")};
  const showClientOrders=async(client:Client)=>{
-  try{setHistoryTitle(client.nome);const {data}=await api.get<Order[]>(`/api/v6/clientes/${client.id}/compras`);setClientHistory(data);}
-  catch(e){setError(errorMessage(e));}
+  try{
+   setError("");
+   const {data}=await api.get<Order[]>(`/api/v6/clientes/${client.id}/compras`);
+   setHistoryTitle(client.nome);setClientHistory(data);setClientMobileView("historico");
+   window.scrollTo({top:0,behavior:"smooth"});
+  } catch(e){setError(errorMessage(e));}
  };
  const saveSupplier=(e:FormEvent)=>{e.preventDefault();void run(async()=>{
   await api.post("/api/v6/fornecedores",{nome:supplierName,telefone:supplierPhone,email:supplierEmail});
@@ -401,12 +462,56 @@ export default function LajuStoreV6(){
     {movements.length===0&&<tr><td colSpan={4} className="lz-empty">Sem movimentações.</td></tr>}</tbody></table></div></section>
    </div>}
 
-   {tab==="pdv"&&<div className="lz-content">
-    <div className="lz-two"><section className="lz-panel"><h2>Nova venda</h2><p>Escolha as peças do pedido, depois registre o pagamento recebido.</p>
-     <div className="lz-form"><label className="lz-span-2">Roupa e variação<select value={sellVariant} onChange={e=>setSellVariant(e.target.value)}><option value="">Selecionar roupa</option>{variants.filter(v=>v.quantidade>0).map(v=><option key={v.id} value={v.id}>{v.produto} · {v.tamanho} · {v.cor} | {cash(v.preco)} ({v.quantidade})</option>)}</select></label>
+   {tab==="pdv"&&<div className={`lz-content lz-mobile-pdv lz-pdv-mode-${pdvMobileView}`}>
+    <div className="lz-mobile-module-switch" role="group" aria-label="Área de vendas">
+     <button type="button" className={pdvMobileView==="nova"?"active":""} aria-pressed={pdvMobileView==="nova"} onClick={()=>setPdvMobileView("nova")}>
+      <span className="material-symbols-outlined" aria-hidden="true">add_shopping_cart</span>Nova venda
+     </button>
+     <button type="button" className={pdvMobileView==="pendentes"?"active":""} aria-pressed={pdvMobileView==="pendentes"} onClick={()=>setPdvMobileView("pendentes")}>
+      <span className="material-symbols-outlined" aria-hidden="true">schedule</span>Pendentes{pendentes.length>0&&<small>{pendentes.length}</small>}
+     </button>
+     <button type="button" className={pdvMobileView==="vendas"?"active":""} aria-pressed={pdvMobileView==="vendas"} onClick={()=>setPdvMobileView("vendas")}>
+      <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>Histórico
+     </button>
+    </div>
+    <div className="lz-two lz-pdv-create-area"><section className="lz-panel"><h2>Nova venda</h2><p>Escolha as peças do pedido, depois registre o pagamento recebido.</p>
+     <div className="lz-form lz-pdv-desktop-picker"><label className="lz-span-2">Roupa e variação<select value={sellVariant} onChange={e=>setSellVariant(e.target.value)}><option value="">Selecionar roupa</option>{variants.filter(v=>v.quantidade>0).map(v=><option key={v.id} value={v.id}>{v.produto} · {v.tamanho} · {v.cor} | {cash(v.preco)} ({v.quantidade})</option>)}</select></label>
       <label>Quantidade<input type="number" min="1" step="1" value={sellQuantity} onChange={e=>setSellQuantity(e.target.value)}/></label><button type="button" className="lz-btn" onClick={addCart}>+ Adicionar ao carrinho</button>
      </div>
-     <div className="lz-cart">{cart.length===0?<div className="lz-empty">Seu carrinho está vazio.</div>:cart.map(c=><div className="lz-cart-row" key={c.id}><div><strong>{c.nome}</strong><small>{c.quantidade} × {cash(c.preco)}</small></div><b>{cash(c.quantidade*c.preco)}</b><button aria-label={`Remover ${c.nome}`} type="button" className="lz-link" onClick={()=>setCart(x=>x.filter(y=>y.id!==c.id))}>Remover</button></div>)}</div>
+     <div className="lz-pdv-quick-picker">
+      <label htmlFor="lz-mobile-pdv-search" className="lz-mobile-field-label">Buscar roupa para vender</label>
+      <div className="lz-search-with-icon">
+       <span className="material-symbols-outlined" aria-hidden="true">search</span>
+       <input id="lz-mobile-pdv-search" type="search" value={pdvSearch} onChange={e=>setPdvSearch(e.target.value)}
+         placeholder="Nome, tamanho, cor ou código" autoComplete="off" />
+      </div>
+      <div className="lz-pdv-product-results" aria-label="Roupas disponíveis para venda">
+       {filteredSaleVariants.length===0?<p className="lz-mini-empty">{variants.length===0?"Cadastre roupas no Estoque para começar.":"Nenhuma peça disponível corresponde à sua busca."}</p>:
+        filteredSaleVariants.map(v=>{
+         const selected=cart.find(item=>item.id===v.id)?.quantidade||0;
+         const full=selected>=v.quantidade;
+         return <article key={v.id} className="lz-pdv-product">
+          <div className="lz-pdv-product-info">
+           <strong>{v.produto}</strong>
+           <small>{v.tamanho} · {v.cor} · {v.sku}</small>
+           <span>{cash(v.preco)} <small>{v.quantidade-selected} disponíveis</small></span>
+          </div>
+          <button type="button" onClick={()=>addOneToCart(v.id)} disabled={full} aria-label={`Adicionar ${v.produto}, ${v.tamanho}, ${v.cor} ao carrinho`}>
+           <span className="material-symbols-outlined" aria-hidden="true">{full?"check":"add"}</span>{full?"Adicionado":"Adicionar"}
+          </button>
+         </article>;
+        })}
+      </div>
+      {variants.filter(v=>v.quantidade>0).length>45&&<p className="lz-hint">Exibindo até 45 variações. Use a busca para encontrar outras roupas.</p>}
+     </div>
+     <div className="lz-cart-mobile-heading"><h3>Carrinho</h3><span>{cartCount} {cartCount===1?"peça":"peças"}</span></div>
+     <div className="lz-cart">{cart.length===0?<div className="lz-empty">Seu carrinho está vazio.</div>:cart.map(c=><div className="lz-cart-row" key={c.id}><div><strong>{c.nome}</strong><small>{c.quantidade} × {cash(c.preco)}</small></div>
+      <div className="lz-cart-adjust" role="group" aria-label={`Quantidade de ${c.nome}`}>
+       <button type="button" aria-label={`Diminuir quantidade de ${c.nome}`} onClick={()=>changeCartQuantity(c.id,-1)}>−</button>
+       <span aria-live="polite">{c.quantidade}</span>
+       <button type="button" aria-label={`Aumentar quantidade de ${c.nome}`} disabled={c.quantidade>=(variants.find(v=>v.id===c.id)?.quantidade??0)} onClick={()=>changeCartQuantity(c.id,1)}>+</button>
+      </div>
+      <b>{cash(c.quantidade*c.preco)}</b><button aria-label={`Remover ${c.nome}`} type="button" className="lz-link lz-cart-remove" onClick={()=>setCart(x=>x.filter(y=>y.id!==c.id))}>Remover</button></div>)}</div>
      <div className="lz-cart-total"><span>Subtotal</span><strong>{cash(cartTotal)}</strong></div>
     </section><section className="lz-panel"><h2>Concluir venda</h2>
       <form className="lz-form" onSubmit={sell}>
@@ -421,7 +526,7 @@ export default function LajuStoreV6(){
       </form>
       <p className="lz-hint">Venda confirmada: baixa imediata. Pedido pendente: sem baixa e sem reserva; confirme a disponibilidade no pagamento. O sistema registra, mas não processa pagamentos.</p>
      </section></div>
-     <section className="lz-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento <span className="lz-chip">{pendentes.length}</span></h2>
+     <section className="lz-panel lz-pdv-pending-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento <span className="lz-chip">{pendentes.length}</span></h2>
       <label className="lz-payment-select">Canal
        <select value={pendingFilter} onChange={e=>setPendingFilter(e.target.value)}>
         <option value="todos">Todos</option><option value="loja">Loja física</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option>
@@ -445,19 +550,104 @@ export default function LajuStoreV6(){
        </tr>)}
        {pendingShown.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhum pedido aguardando pagamento neste filtro.</td></tr>}
       </tbody></table></div>
+      <div className="lz-mobile-pending-cards">
+       {pendingShown.length===0?<p className="lz-mini-empty">Nenhum pedido pendente neste filtro.</p>:
+        pendingShown.map(p=>{
+         const insufficient=p.itens.some(i=>Number(i.saldo_atual??0)<i.quantidade);
+         return <article className="lz-mobile-order-card" key={p.id}>
+          <div className="lz-mobile-order-head"><strong>Pedido #{p.id}</strong><span>{cash(p.total)}</span></div>
+          <p>{p.cliente||"Cliente sem cadastro"} · {p.canal} · {date(p.criado_em)}</p>
+          <ul>{p.itens.map((item,i)=><li key={i}>{item.quantidade}× {item.roupa} — {item.tamanho}/{item.cor}</li>)}</ul>
+          {insufficient&&<p className="lz-pdv-out-of-stock">Estoque insuficiente para concluir. Confira as peças disponíveis.</p>}
+          <div className="lz-mobile-order-actions">
+           <button type="button" className="lz-btn" disabled={busy||insufficient} onClick={()=>concludePending(p)}>Confirmar pagamento</button>
+           {manager&&<button type="button" className="lz-btn lz-outline" disabled={busy} onClick={()=>cancelPending(p)}>Cancelar pedido</button>}
+          </div>
+         </article>;
+        })}
+      </div>
      </section>
-     <section className="lz-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
+     <section className="lz-panel lz-pdv-sales-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
       {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
-      {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div></section>
+      {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div>
+      <div className="lz-mobile-sales-cards">
+       {orders.length===0?<p className="lz-mini-empty">Ainda não há vendas registradas.</p>:
+        orders.map(o=><article key={o.id} className="lz-mobile-order-card">
+         <div className="lz-mobile-order-head"><strong>Venda #{o.id}</strong><span>{cash(o.total)}</span></div>
+         <p>{date(o.criado_em)} · {o.canal} · {o.forma_pagamento||"Pagamento não informado"}</p>
+         <p>{o.cliente||"Cliente sem cadastro"}</p>
+         <div className="lz-mobile-sales-footer">
+          <span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span>
+          {manager&&o.status==="pago"&&<button type="button" className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar venda</button>}
+         </div>
+        </article>)}
+      </div></section>
    </div>}
 
-   {tab==="clientes"&&<div className="lz-content"><section className="lz-panel"><h2>{editingClient?"Editar cliente":"Cadastrar cliente"}</h2>
+   {tab==="clientes"&&<div className={`lz-content lz-mobile-clients lz-clients-mode-${clientMobileView}`}>
+    <div className="lz-mobile-client-switch" role="group" aria-label="Área de clientes">
+     <button type="button" className={clientMobileView==="lista"?"active":""} aria-pressed={clientMobileView==="lista"} onClick={()=>setClientMobileView("lista")}>
+      <span className="material-symbols-outlined" aria-hidden="true">groups</span> Meus clientes
+     </button>
+     <button type="button" className={clientMobileView==="formulario"?"active":""} aria-pressed={clientMobileView==="formulario"} onClick={()=>{
+      setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");
+      setClientMobileView("formulario");
+     }}>
+      <span className="material-symbols-outlined" aria-hidden="true">person_add</span> Novo cliente
+     </button>
+    </div>
+    <section className="lz-panel lz-client-form-panel"><h2>{editingClient?"Editar cliente":"Cadastrar cliente"}</h2>
     <form className="lz-form lz-form-wide" onSubmit={saveClient}><label>Nome<input required value={clientName} onChange={e=>setClientName(e.target.value)}/></label><label>WhatsApp / telefone<input value={clientPhone} onChange={e=>setClientPhone(e.target.value)}/></label><label>Instagram<input value={clientInstagram} onChange={e=>setClientInstagram(e.target.value)} placeholder="@usuario"/></label><button className="lz-btn" disabled={busy}>{editingClient?"Salvar cliente":"Cadastrar cliente"}</button>
-    {editingClient&&<button type="button" className="lz-btn lz-outline" onClick={()=>{setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");}}>Cancelar</button>}</form></section>
-    <section className="lz-panel"><h2>Clientes da loja</h2><div className="lz-table-wrap"><table><thead><tr><th>Nome</th><th>Contato</th><th>Instagram</th><th>Ações</th></tr></thead><tbody>
-    {clients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>{setEditingClient(c.id);setClientName(c.nome);setClientPhone(c.telefone||"");setClientInstagram(c.instagram||"");window.scrollTo({top:0,behavior:"smooth"});}}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button></td></tr>)}
-    {clients.length===0&&<tr><td colSpan={4} className="lz-empty">Nenhum cliente cadastrado.</td></tr>}</tbody></table></div></section>
-    {historyTitle&&<section className="lz-panel"><h2>Compras de {historyTitle}</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Total</th><th>Status</th></tr></thead><tbody>{clientHistory.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{cash(o.total)}</td><td>{o.status}</td></tr>)}{clientHistory.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhuma compra encontrada.</td></tr>}</tbody></table></div></section>}
+    {editingClient&&<button type="button" className="lz-btn lz-outline" onClick={()=>{setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");setClientMobileView("lista");}}>Cancelar</button>}
+    <button type="button" className="lz-btn lz-outline lz-client-mobile-back" onClick={()=>setClientMobileView("lista")}>Voltar para clientes</button></form></section>
+    <section className="lz-panel lz-client-list-panel">
+     <div className="lz-section-head"><h2>Clientes da loja</h2><span className="lz-chip">{filteredClients.length} {filteredClients.length===1?"cliente":"clientes"}</span></div>
+     <label htmlFor="lz-client-search" className="lz-mobile-field-label">Buscar cliente</label>
+     <div className="lz-search-with-icon lz-client-search">
+      <span className="material-symbols-outlined" aria-hidden="true">search</span>
+      <input id="lz-client-search" type="search" value={clientSearch} onChange={e=>setClientSearch(e.target.value)}
+       placeholder="Nome, WhatsApp ou Instagram" autoComplete="off"/>
+     </div>
+     <div className="lz-table-wrap"><table><thead><tr><th>Nome</th><th>Contato</th><th>Instagram</th><th>Ações</th></tr></thead><tbody>
+    {filteredClients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>startEditClient(c)}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button></td></tr>)}
+    {filteredClients.length===0&&<tr><td colSpan={4} className="lz-empty">Nenhum cliente encontrado.</td></tr>}</tbody></table></div>
+    <div className="lz-mobile-client-cards">
+     {filteredClients.length===0?<p className="lz-mini-empty">Nenhum cliente encontrado. Use "Novo cliente" para cadastrar.</p>:
+      filteredClients.map(c=>{
+       const whats=whatsappCliente(c.telefone),insta=instagramCliente(c.instagram);
+       return <article className="lz-mobile-client-card" key={c.id}>
+        <div className="lz-mobile-client-header">
+         <div className="lz-mobile-client-avatar" aria-hidden="true">{c.nome.slice(0,1).toLocaleUpperCase("pt-BR")}</div>
+         <div><strong>{c.nome}</strong><small>{c.telefone||"Telefone não cadastrado"}</small>{c.instagram&&<small>{c.instagram}</small>}</div>
+        </div>
+        <div className="lz-mobile-client-actions">
+         {whats&&<a href={whats} target="_blank" rel="noopener noreferrer" aria-label={`Abrir WhatsApp de ${c.nome}`}>
+          <span className="material-symbols-outlined" aria-hidden="true">chat</span> WhatsApp</a>}
+         {insta&&<a href={insta} target="_blank" rel="noopener noreferrer" aria-label={`Abrir Instagram de ${c.nome}`}>
+          <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span> Instagram</a>}
+         <button type="button" onClick={()=>void showClientOrders(c)}>
+          <span className="material-symbols-outlined" aria-hidden="true">history</span> Compras</button>
+         <button type="button" onClick={()=>startEditClient(c)}>
+          <span className="material-symbols-outlined" aria-hidden="true">edit</span> Editar</button>
+        </div>
+       </article>;
+      })}
+    </div>
+    </section>
+    {historyTitle&&<section className="lz-panel lz-client-history-panel">
+     <button className="lz-client-back-button" type="button" onClick={()=>setClientMobileView("lista")}>
+      <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span> Voltar para clientes
+     </button>
+     <h2>Compras de {historyTitle}</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Total</th><th>Status</th></tr></thead><tbody>{clientHistory.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{cash(o.total)}</td><td>{o.status}</td></tr>)}{clientHistory.length===0&&<tr><td colSpan={5} className="lz-empty">Nenhuma compra encontrada.</td></tr>}</tbody></table></div>
+     <div className="lz-mobile-client-orders">
+      {clientHistory.length===0?<p className="lz-mini-empty">Esta cliente ainda não possui compras registradas.</p>:
+       clientHistory.map(o=><article key={o.id} className="lz-mobile-order-card">
+        <div className="lz-mobile-order-head"><strong>Pedido #{o.id}</strong><span>{cash(o.total)}</span></div>
+        <p>{date(o.criado_em)} · {o.canal}</p>
+        <span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span>
+       </article>)}
+     </div>
+    </section>}
    </div>}
 
    {tab==="financeiro"&&manager&&<div className="lz-content">
