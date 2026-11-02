@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useState, type FormEvent} from "react";
 import axios from "axios";
 import {useNavigate} from "react-router-dom";
 import {api} from "../../utils/axios";
+import {makeCommercialWorkbook,type CommercialExport} from "../../utils/exportCommercialExcel";
 import {formatFinancialDate} from "../../utils/formatFinancialDate";
 import {useAuth} from "../../context/AuthContext";
 import "./V6.css";
@@ -79,6 +80,7 @@ export default function LajuStoreV6(){
  const manager=operador?.role==="gestor";
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [navOpen,setNavOpen]=useState(false);
+ const [monthlyExport,setMonthlyExport]=useState(()=>today().slice(0,7));
  const [pdvMobileView,setPdvMobileView]=useState<"nova"|"pendentes"|"vendas">("nova");
  const [clientMobileView,setClientMobileView]=useState<"lista"|"formulario"|"historico">("lista");
  const [pdvSearch,setPdvSearch]=useState("");
@@ -234,6 +236,25 @@ export default function LajuStoreV6(){
    ["Mais vendidos","Tamanho","Cor","Peças"],
    ...report.maisVendidos.map(p=>[p.nome,p.tamanho,p.cor,p.pecas])
   ]);
+ };
+ const exportCommercialExcel=async()=>{
+  if(!manager||busy)return;
+  setBusy(true);setError("");setNotice("");
+  try{
+   const {data}=await api.get<CommercialExport>("/api/operacao/exportacao/dados-comerciais");
+   const workbook=makeCommercialWorkbook(data);
+   const url=URL.createObjectURL(workbook);
+   const link=document.createElement("a");
+   link.href=url;link.download=`lajustore-dados-comerciais-${today()}.xlsx`;
+   document.body.appendChild(link);link.click();link.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+   setNotice("Excel exportado. Guarde-o em local privado: ele contém dados de clientes e NÃO substitui um backup restaurável.");
+  }catch(e){setError(errorMessage(e));}
+  finally{setBusy(false);}
+ };
+ const openMonthlyReport=()=>{
+  if(!manager||!/^(20\\d{2})-(0[1-9]|1[0-2])$/.test(monthlyExport))return;
+  navigate(`/lajustore/relatorio-mensal?mes=${monthlyExport}`);
  };
  const exportCommercialData=async()=>{
   if(!manager || busy)return;
@@ -782,9 +803,24 @@ export default function LajuStoreV6(){
        <button className="lz-btn" disabled={busy}>Criar acesso</button></form></section>
      <section className="lz-panel"><h2>Permissões</h2><p><strong>Administradora:</strong> vendas, estoque, clientes, funcionários, fornecedores, financeiro e relatórios.</p>
       <p><strong>Funcionária:</strong> dashboard, consulta/cadastro de produtos, clientes e registro de vendas.</p>
-      <div className="lz-warning">A exportação comercial abaixo é uma cópia para consulta, NÃO um backup completo ou uma restauração automática. O backup real precisa incluir também o banco PostgreSQL e os usuários.</div>
+      <div className="lz-warning">Os arquivos Excel e PDF são cópias para consulta. **Não recuperam automaticamente o banco nem as contas de acesso.** Continue guardando backups completos do PostgreSQL e a exportação JSON.</div>
+      <div className="lz-export-actions">
+       <button type="button" className="lz-btn lz-operation-export" disabled={busy} onClick={()=>void exportCommercialExcel()}>
+        <span className="material-symbols-outlined" aria-hidden="true">table_view</span> Baixar planilha Excel completa (.xlsx)
+       </button>
+       <p className="lz-hint">Planilha com todas as 11 tabelas comerciais exportadas pela API: produtos, variações, clientes, pedidos, financeiro, fornecedores, compras, movimentações e auditoria. Não inclui usuários ou senhas.</p>
+       <div className="lz-monthly-export-box">
+        <label>Mês para o relatório PDF
+         <input type="month" value={monthlyExport} min="2020-01" max="2099-12" onChange={e=>setMonthlyExport(e.target.value)} />
+        </label>
+        <button type="button" className="lz-btn lz-outline" onClick={openMonthlyReport}>
+         <span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span> Abrir relatório mensal para salvar em PDF
+        </button>
+       </div>
+       <p className="lz-hint">No relatório mensal, toque em <strong>Imprimir / Salvar em PDF</strong> e escolha <strong>Salvar como PDF</strong> no dispositivo. A emissão é manual, não automática.</p>
+      </div>
       <button type="button" className="lz-btn lz-operation-export" disabled={busy} onClick={()=>void exportCommercialData()}>
-       <span className="material-symbols-outlined" aria-hidden="true">download</span> Exportar dados comerciais (JSON)
+       <span className="material-symbols-outlined" aria-hidden="true">download</span> Exportar JSON original (para recuperação técnica futura)
       </button>
       <p className="lz-hint">Disponível apenas para administradoras. O arquivo inclui dados de clientes: guarde em local privado e protegido. Não inclui senhas.</p>
       <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="lz-help">Abrir Supabase para verificar backups completos ↗</a>
