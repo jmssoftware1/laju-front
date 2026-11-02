@@ -10,6 +10,7 @@ import "./V8.css";
 import "./MobileFix.css";
 import "./MobilePdvClients.css";
 import "./Operacao.css";
+import CrediarioPanel from "./CrediarioPanel";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
@@ -81,10 +82,12 @@ export default function LajuStoreV6(){
  const [tab,setTab]=useState<Tab>("inicio"),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
  const [navOpen,setNavOpen]=useState(false);
  const [monthlyExport,setMonthlyExport]=useState(()=>today().slice(0,7));
- const [pdvMobileView,setPdvMobileView]=useState<"nova"|"pendentes"|"vendas">("nova");
- const [clientMobileView,setClientMobileView]=useState<"lista"|"formulario"|"historico">("lista");
+ const [pdvMobileView,setPdvMobileView]=useState<"nova"|"pendentes"|"vendas"|"crediario">("nova");
+ const [clientMobileView,setClientMobileView]=useState<"lista"|"formulario"|"historico"|"crediario">("lista");
  const [pdvSearch,setPdvSearch]=useState("");
  const [clientSearch,setClientSearch]=useState("");
+ const [selectedCreditClient,setSelectedCreditClient]=useState<number|null>(null);
+ const [creditRefreshKey,setCreditRefreshKey]=useState(0);
  const [stockMobileView,setStockMobileView]=useState<"lista"|"cadastro">("lista");
  useEffect(()=>{
   if(!navOpen)return;
@@ -119,6 +122,7 @@ export default function LajuStoreV6(){
  const [variantEdit,setVariantEdit]=useState<Variant|null>(null);
  const [sellVariant,setSellVariant]=useState(""),[sellQuantity,setSellQuantity]=useState("1"),[cart,setCart]=useState<CartItem[]>([]);
  const [sellClient,setSellClient]=useState(""),[sellChannel,setSellChannel]=useState("loja"),[payment,setPayment]=useState("pix"),[discount,setDiscount]=useState("0"),[sellNote,setSellNote]=useState("");
+ const [creditInstallments,setCreditInstallments]=useState("2"),[creditFirstDue,setCreditFirstDue]=useState(today()),[creditDays,setCreditDays]=useState("30");
  const [clientName,setClientName]=useState(""),[clientPhone,setClientPhone]=useState(""),[clientInstagram,setClientInstagram]=useState("");
  const [editingClient,setEditingClient]=useState<number|null>(null),[clientHistory,setClientHistory]=useState<Order[]>([]),[historyTitle,setHistoryTitle]=useState("");
  const [supplierName,setSupplierName]=useState(""),[supplierPhone,setSupplierPhone]=useState(""),[supplierEmail,setSupplierEmail]=useState("");
@@ -174,7 +178,7 @@ export default function LajuStoreV6(){
  useEffect(()=>{void refresh();},[refresh]);
  const run=async(task:()=>Promise<void>,success:string)=>{
   setBusy(true);setNotice("");setError("");
-  try{await task();setNotice(success);await refresh();}
+  try{await task();setNotice(success);await refresh();setCreditRefreshKey(key=>key+1);}
   catch(e){setError(errorMessage(e));}finally{setBusy(false);}
  };
  const go=(target:Tab)=>{
@@ -366,6 +370,12 @@ export default function LajuStoreV6(){
   else await api.post("/api/lajustore/clientes",payload);
   setEditingClient(null);setClientName("");setClientPhone("");setClientInstagram("");setClientMobileView("lista");
  },"Cliente salvo.")};
+ const showClientCredit=(client:Client)=>{
+  if(!manager)return;
+  setSelectedCreditClient(client.id);setClientMobileView("crediario");
+  setError("");setNotice("");
+  window.scrollTo({top:0,behavior:"smooth"});
+ };
  const showClientOrders=async(client:Client)=>{
   try{
    setError("");
