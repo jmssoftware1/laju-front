@@ -54,6 +54,7 @@
  .lz-shell .lz-crediario-item-values{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:760px){
+ .lz-shell .lz-mobile-client-switch{grid-template-columns:repeat(3,minmax(0,1fr))}
  .lz-shell .lz-mobile-module-switch{grid-template-columns:repeat(4,minmax(0,1fr))}
  .lz-shell .lz-mobile-module-switch button{padding-inline:3px;gap:3px;font-size:10.5px}
  .lz-shell .lz-pdv-mode-nova .lz-pdv-crediario-panel,
