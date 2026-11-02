@@ -19,3 +19,4 @@ jobs:
       - run: node --test tests/mobile-fix.test.mjs
       - run: node --test tests/mobile-pdv-clientes.test.mjs
       - run: node --test tests/operacao-entrega.test.mjs
+      - run: node --experimental-strip-types --test tests/financeiro-date.test.mjs
