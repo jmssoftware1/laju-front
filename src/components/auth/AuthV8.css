@@ -147,3 +147,49 @@
 @media(prefers-reduced-motion:reduce){
   .auth-page *{transition:none!important}
 }
+/* Botão mostrar/ocultar senha — permanece dentro do campo e acessível no celular. */
+.auth-page .auth-password-control{
+  position:relative;
+  width:100%;
+}
+.auth-page .auth-field .auth-password-control input[type="password"],
+.auth-page .auth-field .auth-password-control input[type="text"]{
+  padding-right:61px;
+}
+.auth-page .auth-password-toggle{
+  position:absolute;
+  top:50%;
+  right:3px;
+  transform:translateY(-50%);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  width:44px;
+  height:44px;
+  min-width:44px;
+  border:0;
+  border-radius:9px;
+  padding:0;
+  background:transparent;
+  color:#806670;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+.auth-page .auth-password-toggle:hover:not(:disabled){
+  background:#f9eeed;
+  color:var(--auth-action);
+}
+.auth-page .auth-password-toggle:focus-visible{
+  outline:2px solid var(--auth-action);
+  outline-offset:-3px;
+}
+.auth-page .auth-password-toggle:disabled{
+  cursor:not-allowed;
+  opacity:.55;
+}
+.auth-page .auth-password-toggle .material-symbols-outlined{
+  font-size:23px;
+  line-height:1;
+  user-select:none;
+  pointer-events:none;
+}
