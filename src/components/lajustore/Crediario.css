@@ -1,0 +1,79 @@
+/* LajuStore V8 — Crediário da Julia; mantém a identidade rosé. */
+.lz-shell .lz-crediario{display:grid;gap:16px;min-width:0}
+.lz-shell .lz-crediario-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lz-shell .lz-crediario-heading h2{margin:0 0 7px}
+.lz-shell .lz-crediario-heading p{margin:0;color:var(--lz-muted);line-height:1.5;font-size:12px}
+.lz-shell .lz-crediario-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.lz-shell .lz-crediario-metrics>div{padding:14px;border-radius:12px;background:#fff4f1;border:1px solid #efd9d5;min-width:0;display:grid;gap:8px}
+.lz-shell .lz-crediario-metrics small{color:#816975;font-size:11px;line-height:1.3}
+.lz-shell .lz-crediario-metrics strong{color:var(--lz-rose-deep);font-size:clamp(18px,2vw,25px);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.lz-shell .lz-crediario-filters{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+.lz-shell .lz-crediario-filters label{display:grid;gap:7px;font-size:12px;font-weight:750;color:var(--lz-ink);min-width:0}
+.lz-shell .lz-crediario-filters input,.lz-shell .lz-crediario-filters select{width:100%;min-width:0;height:44px;border:1px solid #e3ced0;border-radius:10px;padding:9px 11px;color:var(--lz-ink);background:white;font-size:14px}
+.lz-shell .lz-crediario-filters button{min-height:44px}
+.lz-shell .lz-crediario-list{display:grid;gap:12px}
+.lz-shell .lz-crediario-item{padding:16px;background:#fffdfa;border:1px solid #eddcdd;border-radius:14px;display:grid;gap:14px;min-width:0}
+.lz-shell .lz-crediario-item.is-late{border-color:#e7b3b7;background:#fff9f8}
+.lz-shell .lz-crediario-item-heading{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.lz-shell .lz-crediario-item-heading>div{display:grid;gap:5px;min-width:0}
+.lz-shell .lz-crediario-item-heading strong{font-size:15px;color:var(--lz-ink);overflow-wrap:anywhere}
+.lz-shell .lz-crediario-item-heading small{font-size:11px;color:var(--lz-muted)}
+.lz-shell .lz-crediario-status{white-space:nowrap;font-size:11px;font-weight:800;color:#95613d;background:#fff2e3;border-radius:50px;padding:6px 9px}
+.lz-shell .lz-crediario-status.is-late{background:#fdeaea;color:#ae3c50}
+.lz-shell .lz-crediario-status.is-paid{background:#eaf6ed;color:#357149}
+.lz-shell .lz-crediario-item-values{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.lz-shell .lz-crediario-item-values>div{display:grid;gap:7px;min-width:0}
+.lz-shell .lz-crediario-item-values small{font-size:10px;color:var(--lz-muted);line-height:1.25}
+.lz-shell .lz-crediario-item-values strong{font-size:14px;color:var(--lz-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.lz-shell .lz-crediario-item-values strong.lz-crediario-outstanding{font-size:17px;color:var(--lz-rose-deep)}
+.lz-shell .lz-crediario-expand{justify-self:start}
+.lz-shell .lz-crediario-details{display:grid;gap:13px;padding-top:14px;border-top:1px solid #f0dddd}
+.lz-shell .lz-crediario-details h3{font-size:13px;color:var(--lz-ink);margin:0}
+.lz-shell .lz-crediario-parcels,.lz-shell .lz-crediario-receipts{display:grid;gap:6px}
+.lz-shell .lz-crediario-parcels>div,.lz-shell .lz-crediario-receipts>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border:1px solid #efdfdc;border-radius:8px;flex-wrap:wrap}
+.lz-shell .lz-crediario-parcels strong,.lz-shell .lz-crediario-receipts strong{font-size:12px;color:var(--lz-ink)}
+.lz-shell .lz-crediario-parcels small,.lz-shell .lz-crediario-receipts span,.lz-shell .lz-crediario-receipts small{font-size:11px;color:var(--lz-muted)}
+.lz-shell .lz-crediario-pay{padding:16px;border:1px solid #ebcbd0;border-radius:12px;background:#fff6f4}
+.lz-shell .lz-crediario-pay h3{grid-column:1/-1;margin:0}
+.lz-shell .lz-crediario-error,.lz-shell .lz-crediario-success{margin:0;padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.5}
+.lz-shell .lz-crediario-error{color:#962e44;background:#ffeff0;border:1px solid #edc8d2}
+.lz-shell .lz-crediario-success{color:#336c4a;background:#ebf7f0;border:1px solid #b6dcca}
+.lz-shell .lz-crediario-sale-note{margin:0;padding:13px;border:1px solid #eac8ce;border-radius:10px;color:#814454;background:#fff5f4;font-size:12px;line-height:1.5}
+.lz-shell .lz-crediario-installments{display:grid;gap:10px;padding:15px;border:1px solid #efd3d6;border-radius:12px;background:#fff9f8}
+.lz-shell .lz-crediario-installments p{margin:0;color:var(--lz-muted);font-size:12px;line-height:1.5}
+.lz-shell .lz-crediario-installments label{min-width:0}
+.lz-shell .lz-crediario-installments-summary{font-size:12px;color:#7e4e62;font-weight:750}
+.lz-shell .lz-crediario-client-back{display:flex;justify-content:flex-start;gap:8px}
+.lz-shell .lz-crediario-client-panel{display:none}
+.lz-shell .lz-clients-mode-crediario .lz-crediario-client-panel{display:block}
+.lz-shell .lz-clients-mode-crediario .lz-client-form-panel,
+.lz-shell .lz-clients-mode-crediario .lz-client-list-panel,
+.lz-shell .lz-clients-mode-crediario .lz-client-history-panel{display:none}
+.lz-shell .lz-pdv-crediario-panel{display:block}
+@media(max-width:940px){
+ .lz-shell .lz-crediario-item-values{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+ .lz-shell .lz-mobile-module-switch{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .lz-shell .lz-mobile-module-switch button{padding-inline:3px;gap:3px;font-size:10.5px}
+ .lz-shell .lz-pdv-mode-nova .lz-pdv-crediario-panel,
+ .lz-shell .lz-pdv-mode-pendentes .lz-pdv-crediario-panel,
+ .lz-shell .lz-pdv-mode-vendas .lz-pdv-crediario-panel{display:none}
+ .lz-shell .lz-pdv-mode-crediario .lz-pdv-create-area,
+ .lz-shell .lz-pdv-mode-crediario .lz-pdv-pending-panel,
+ .lz-shell .lz-pdv-mode-crediario .lz-pdv-sales-panel{display:none}
+ .lz-shell .lz-crediario-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .lz-shell .lz-crediario-metrics>div:first-child{grid-column:1/-1}
+ .lz-shell .lz-crediario-filters{grid-template-columns:1fr}
+ .lz-shell .lz-crediario-item{padding:12px}
+ .lz-shell .lz-crediario-item-values{gap:12px}
+ .lz-shell .lz-crediario-item-values strong{font-size:13px}
+ .lz-shell .lz-crediario-pay{padding:12px}
+ .lz-shell .lz-crediario-expand{width:100%}
+ .lz-shell .lz-crediario-client-panel{min-width:0}
+}
+@media(max-width:380px){
+ .lz-shell .lz-mobile-module-switch button{font-size:9px}
+ .lz-shell .lz-mobile-module-switch button .material-symbols-outlined{font-size:18px}
+ .lz-shell .lz-crediario-parcels>div,.lz-shell .lz-crediario-receipts>div{display:grid;gap:4px}
+}
