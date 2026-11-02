@@ -10,7 +10,7 @@ test("Apenas a gestora pode desfazer vendas canceladas elegíveis",async()=>{
  assert.match(app,/manager&&o\.status==="cancelado"&&o\.cancelamento_reversivel/);
  assert.match(app,/openUndoCancel\(o\)/);
  assert.match(app,/Desfazer cancelamento/);
- assert.match(app,/undoTarget\.status/); // cheque de proteção na UI
+ assert.match(app,/order\.status!=="cancelado"/); // cheque de proteção na UI
 });
 
 test("Reversão exige justificativa, confirmação de ausência de devolução e servidor V9",async()=>{
