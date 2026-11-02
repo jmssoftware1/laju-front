@@ -702,6 +702,11 @@ export default function LajuStoreV6(){
      }}>
       <span className="material-symbols-outlined" aria-hidden="true">person_add</span> Novo cliente
      </button>
+     {manager&&<button type="button" className={clientMobileView==="crediario"?"active":""} aria-pressed={clientMobileView==="crediario"} onClick={()=>{
+      setSelectedCreditClient(null);setClientMobileView("crediario");
+     }}>
+      <span className="material-symbols-outlined" aria-hidden="true">payments</span>Em aberto
+     </button>}
     </div>
     <section className="lz-panel lz-client-form-panel"><h2>{editingClient?"Editar cliente":"Cadastrar cliente"}</h2>
     <form className="lz-form lz-form-wide" onSubmit={saveClient}><label>Nome<input required value={clientName} onChange={e=>setClientName(e.target.value)}/></label><label>WhatsApp / telefone<input value={clientPhone} onChange={e=>setClientPhone(e.target.value)}/></label><label>Instagram<input value={clientInstagram} onChange={e=>setClientInstagram(e.target.value)} placeholder="@usuario"/></label><button className="lz-btn" disabled={busy}>{editingClient?"Salvar cliente":"Cadastrar cliente"}</button>
@@ -716,7 +721,7 @@ export default function LajuStoreV6(){
        placeholder="Nome, WhatsApp ou Instagram" autoComplete="off"/>
      </div>
      <div className="lz-table-wrap"><table><thead><tr><th>Nome</th><th>Contato</th><th>Instagram</th><th>Ações</th></tr></thead><tbody>
-    {filteredClients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>startEditClient(c)}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button></td></tr>)}
+    {filteredClients.map(c=><tr key={c.id}><td><strong>{c.nome}</strong></td><td>{c.telefone||"—"}</td><td>{c.instagram||"—"}</td><td><button className="lz-link" onClick={()=>startEditClient(c)}>Editar</button><button className="lz-link" onClick={()=>void showClientOrders(c)}>Histórico</button>{manager&&<button className="lz-link" onClick={()=>showClientCredit(c)}>Em aberto</button>}</td></tr>)}
     {filteredClients.length===0&&<tr><td colSpan={4} className="lz-empty">Nenhum cliente encontrado.</td></tr>}</tbody></table></div>
     <div className="lz-mobile-client-cards">
      {filteredClients.length===0?<p className="lz-mini-empty">Nenhum cliente encontrado. Use "Novo cliente" para cadastrar.</p>:
@@ -736,11 +741,17 @@ export default function LajuStoreV6(){
           <span className="material-symbols-outlined" aria-hidden="true">history</span> Compras</button>
          <button type="button" onClick={()=>startEditClient(c)}>
           <span className="material-symbols-outlined" aria-hidden="true">edit</span> Editar</button>
+         {manager&&<button type="button" onClick={()=>showClientCredit(c)}>
+          <span className="material-symbols-outlined" aria-hidden="true">payments</span> Em aberto</button>}
         </div>
        </article>;
       })}
     </div>
     </section>
+    {manager&&<div className="lz-crediario-client-panel"><CrediarioPanel
+      clientId={selectedCreditClient} refreshKey={creditRefreshKey}
+      onBack={()=>{setSelectedCreditClient(null);setClientMobileView("lista");}}
+     /></div>}
     {historyTitle&&<section className="lz-panel lz-client-history-panel">
      <button className="lz-client-back-button" type="button" onClick={()=>setClientMobileView("lista")}>
       <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span> Voltar para clientes
