@@ -220,7 +220,9 @@ export default function LajuStoreV6(){
   if(!report)return;
   downloadCsv(`lajustore-relatorio-${report.de}-${report.ate}.csv`,[
    ["Relatório LajuStore","Início",report.de,"Fim",report.ate],
-   ["Vendas",report.totais.vendas,"Faturamento",String(report.totais.faturamento),"Lucro estimado",String(report.totais.lucro_estimado)],
+   ["Vendas",report.totais.vendas,"Faturamento",String(report.totais.faturamento),"Margem estimada",String(report.totais.lucro_estimado)],
+   ...(indicators?[["Despesas operacionais",String(indicators.despesas_operacionais),"Resultado operacional estimado",String(indicators.resultado_operacional_estimado)],
+    ["Peças sem custo cadastrado",indicators.pecas_sem_custo,"Saldo de caixa do período",String(indicators.saldo_caixa)]]:[]),
    [],
    ["Vendas por dia","Vendas","Bruto"],
    ...report.dias.map(d=>[d.dia,d.vendas,String(d.bruto)]),
@@ -406,7 +408,16 @@ export default function LajuStoreV6(){
     <div className="lz-two">
      <section className="lz-panel"><div className="lz-section-head"><h2>Estoque em atenção</h2><span className="lz-chip">Reposição</span></div>
       <div className="lz-big-number">{dashboard?.alertas??"—"}<span>variações</span></div>
-      <p>Roupas com quantidade igual ou inferior ao mínimo definido.</p><button className="lz-btn" onClick={()=>go("estoque")}>Gerenciar estoque →</button></section>
+      <p>Roupas com quantidade igual ou inferior ao mínimo definido.</p>
+      {stockAlerts&&stockAlerts.total>0&&<div className="lz-alert-stock-list">
+       <p className="lz-stock-alert-summary">{stockAlerts.zerados} {stockAlerts.zerados===1?"variação esgotada":"variações esgotadas"}. As mais urgentes:</p>
+       {stockAlerts.itens.slice(0,5).map(item=><div className="lz-alert-stock-item" key={item.variante_id}>
+        <div><strong>{item.nome}</strong><small>{item.tamanho} · {item.cor} · {item.sku}</small></div>
+        <span className={item.esgotado?"lz-stock-alert-empty":""}>{item.quantidade} / mín. {item.minimo}</span>
+       </div>)}
+       {stockAlerts.total>5&&<p className="lz-hint">E mais {stockAlerts.total-5} variações que precisam de atenção.</p>}
+      </div>}
+      <button className="lz-btn" onClick={()=>{setOnlyLow(true);setStockMobileView("lista");go("estoque");}}>Ver roupas com estoque baixo →</button></section>
      <section className="lz-panel"><div className="lz-section-head"><h2>Mais vendidos</h2><span className="lz-chip">Histórico</span></div>
       {dashboard?.top?.length?dashboard.top.map((x,i)=><div className="lz-top-product" key={x.nome}><span>{i+1}</span><strong>{x.nome}</strong><small>{x.pecas} peças</small></div>):<div className="lz-empty">As primeiras vendas aparecerão aqui.</div>}
      </section>
@@ -694,7 +705,19 @@ export default function LajuStoreV6(){
    </div>}
 
    {tab==="financeiro"&&manager&&<div className="lz-content">
+    <p className="lz-operation-intro">Visão geral do caixa desde o primeiro lançamento:</p>
     <div className="lz-metrics lz-three"><article className="lz-metric"><small>Entradas confirmadas</small><strong>{cash(financeSummary.entradas)}</strong></article><article className="lz-metric"><small>Saídas confirmadas</small><strong>{cash(financeSummary.saidas)}</strong></article><article className="lz-metric"><small>Saldo de caixa registrado</small><strong>{cash(Number(financeSummary.entradas)-Number(financeSummary.saidas))}</strong></article></div>
+    {indicators&&<section className="lz-panel lz-operation-summary">
+     <div className="lz-section-head"><h2>Resultado operacional estimado</h2><span className="lz-chip">Últimos 30 dias</span></div>
+     <div className="lz-operation-grid">
+      <div><small>Faturamento das vendas</small><strong>{cash(indicators.faturamento)}</strong></div>
+      <div><small>Margem das vendas</small><strong>{cash(indicators.margem_vendas_estimada)}</strong></div>
+      <div><small>Despesas operacionais</small><strong>{cash(indicators.despesas_operacionais)}</strong></div>
+      <div><small>Resultado operacional estimado</small><strong>{cash(indicators.resultado_operacional_estimado)}</strong></div>
+     </div>
+     {indicators.pecas_sem_custo>0&&<p className="lz-operation-warning">{indicators.pecas_sem_custo} peças vendidas sem custo registrado. A estimativa de lucro pode estar maior que o real.</p>}
+     <p className="lz-hint">Resultado de vendas menos custo conhecido das roupas e despesas operacionais lançadas. Não equivale ao saldo de caixa nem ao lucro contábil.</p>
+    </section>}
     <section className="lz-panel"><h2>Novo lançamento financeiro</h2><p>Vendas e compras já geram lançamentos automaticamente. Use este formulário para despesas e receitas adicionais.</p>
      <form className="lz-form lz-form-wide" onSubmit={finance}>
       <label>Tipo<select value={financeType} onChange={e=>setFinanceType(e.target.value)}><option value="saida">Despesa / saída</option><option value="entrada">Receita / entrada</option></select></label>
@@ -731,7 +754,19 @@ export default function LajuStoreV6(){
 
    {tab==="relatorios"&&manager&&<div className="lz-content">
     <section className="lz-panel"><div className="lz-section-head"><h2>Período da análise</h2><button className="lz-btn lz-outline" disabled={!report} onClick={exportReport}>Exportar relatório CSV</button><div className="lz-range"><label>De<input aria-label="Data inicial" type="date" value={rangeStart} onChange={e=>setRangeStart(e.target.value)}/></label><label>Até<input aria-label="Data final" type="date" value={rangeEnd} onChange={e=>setRangeEnd(e.target.value)}/></label><button className="lz-btn" onClick={()=>void refresh()}>Consultar</button></div></div></section>
-    <div className="lz-metrics lz-three"><article className="lz-metric"><small>Vendas no período</small><strong>{report?.totais.vendas??"—"}</strong></article><article className="lz-metric"><small>Faturamento líquido</small><strong>{report?cash(report.totais.faturamento):"—"}</strong></article><article className="lz-metric"><small>Lucro bruto estimado</small><strong>{report?cash(report.totais.lucro_estimado):"—"}</strong></article></div>
+    <div className="lz-metrics lz-three"><article className="lz-metric"><small>Vendas no período</small><strong>{report?.totais.vendas??"—"}</strong></article><article className="lz-metric"><small>Faturamento líquido</small><strong>{report?cash(report.totais.faturamento):"—"}</strong></article><article className="lz-metric"><small>Margem de vendas estimada</small><strong>{indicators?cash(indicators.margem_vendas_estimada):"—"}</strong></article></div>
+    {indicators&&<section className="lz-panel lz-operation-summary">
+     <div className="lz-section-head"><h2>Resultado e caixa no período</h2><span className="lz-chip">{indicators.de} a {indicators.ate}</span></div>
+     <div className="lz-operation-grid">
+      <div><small>Despesas operacionais registradas</small><strong>{cash(indicators.despesas_operacionais)}</strong></div>
+      <div><small>Resultado operacional estimado</small><strong>{cash(indicators.resultado_operacional_estimado)}</strong></div>
+      <div><small>Entradas no caixa</small><strong>{cash(indicators.entradas_caixa)}</strong></div>
+      <div><small>Saídas no caixa</small><strong>{cash(indicators.saidas_caixa)}</strong></div>
+     </div>
+     <div className="lz-operation-balance">Saldo do caixa no período <strong>{cash(indicators.saldo_caixa)}</strong></div>
+     {indicators.pecas_sem_custo>0&&<p className="lz-operation-warning">Atenção: {indicators.pecas_sem_custo} peças vendidas não têm custo cadastrado.</p>}
+     <p className="lz-hint">{indicators.aviso}</p>
+    </section>}
     <div className="lz-two"><section className="lz-panel"><h2>Vendas por canal</h2>{report?.canais.length?report.canais.map(c=><div className="lz-breakdown" key={c.canal}><div><strong>{c.canal}</strong><small>{c.vendas} vendas · {cash(c.total)}</small></div><div className="lz-bar"><span style={{width:`${Math.min(100,100*Number(c.total)/Math.max(1,...report.canais.map(x=>Number(x.total))))}%`}}/></div></div>):<div className="lz-empty">Sem vendas neste período.</div>}</section>
      <section className="lz-panel"><h2>Produtos mais vendidos</h2>{report?.maisVendidos.length?report.maisVendidos.map((p,i)=><div className="lz-top-product" key={`${p.nome}-${p.tamanho}-${p.cor}`}><span>{i+1}</span><strong>{p.nome}<small>{p.tamanho} · {p.cor}</small></strong><small>{p.pecas} peças</small></div>):<div className="lz-empty">Sem dados neste período.</div>}</section></div>
     <section className="lz-panel"><h2>Vendas por dia</h2><div className="lz-table-wrap"><table><thead><tr><th>Dia</th><th>Vendas</th><th>Bruto</th></tr></thead><tbody>{report?.dias.map(d=><tr key={d.dia}><td>{date(d.dia+"T12:00:00")}</td><td>{d.vendas}</td><td>{cash(d.bruto)}</td></tr>)}{!report?.dias.length&&<tr><td colSpan={3} className="lz-empty">Sem registros no intervalo.</td></tr>}</tbody></table></div><p className="lz-hint">{report?.nota}</p></section>
@@ -746,8 +781,12 @@ export default function LajuStoreV6(){
        <button className="lz-btn" disabled={busy}>Criar acesso</button></form></section>
      <section className="lz-panel"><h2>Permissões</h2><p><strong>Administradora:</strong> vendas, estoque, clientes, funcionários, fornecedores, financeiro e relatórios.</p>
       <p><strong>Funcionária:</strong> dashboard, consulta/cadastro de produtos, clientes e registro de vendas.</p>
-      <div className="lz-warning">Os backups são configurados na infraestrutura do Supabase. Não existe backup automático criado por esta tela.</div>
-      <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="lz-help">Abrir painel Supabase ↗</a>
+      <div className="lz-warning">A exportação comercial abaixo é uma cópia para consulta, NÃO um backup completo ou uma restauração automática. O backup real precisa incluir também o banco PostgreSQL e os usuários.</div>
+      <button type="button" className="lz-btn lz-operation-export" disabled={busy} onClick={()=>void exportCommercialData()}>
+       <span className="material-symbols-outlined" aria-hidden="true">download</span> Exportar dados comerciais (JSON)
+      </button>
+      <p className="lz-hint">Disponível apenas para administradoras. O arquivo inclui dados de clientes: guarde em local privado e protegido. Não inclui senhas.</p>
+      <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="lz-help">Abrir Supabase para verificar backups completos ↗</a>
      </section>
     </div>
     <section className="lz-panel"><h2>Contas cadastradas</h2><div className="lz-table-wrap"><table><thead><tr><th>Usuário</th><th>Função</th><th>Status</th><th>Ações</th></tr></thead><tbody>
