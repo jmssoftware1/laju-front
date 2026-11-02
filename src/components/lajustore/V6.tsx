@@ -564,6 +564,9 @@ export default function LajuStoreV6(){
      <button type="button" className={pdvMobileView==="vendas"?"active":""} aria-pressed={pdvMobileView==="vendas"} onClick={()=>setPdvMobileView("vendas")}>
       <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>Histórico
      </button>
+     {manager&&<button type="button" className={pdvMobileView==="crediario"?"active":""} aria-pressed={pdvMobileView==="crediario"} onClick={()=>setPdvMobileView("crediario")}>
+      <span className="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span>Em aberto
+     </button>}
     </div>
     <div className="lz-two lz-pdv-create-area"><section className="lz-panel"><h2>Nova venda</h2><p>Escolha as peças do pedido, depois registre o pagamento recebido.</p>
      <div className="lz-form lz-pdv-desktop-picker"><label className="lz-span-2">Roupa e variação<select value={sellVariant} onChange={e=>setSellVariant(e.target.value)}><option value="">Selecionar roupa</option>{variants.filter(v=>v.quantidade>0).map(v=><option key={v.id} value={v.id}>{v.produto} · {v.tamanho} · {v.cor} | {cash(v.preco)} ({v.quantidade})</option>)}</select></label>
@@ -607,16 +610,29 @@ export default function LajuStoreV6(){
     </section><section className="lz-panel"><h2>Concluir venda</h2>
       <form className="lz-form" onSubmit={sell}>
        <label>Canal<select value={sellChannel} onChange={e=>setSellChannel(e.target.value)}><option value="loja">Loja física</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option></select></label>
-       <label>Pagamento recebido<select value={payment} onChange={e=>setPayment(e.target.value)}><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option></select></label>
-       <label className="lz-span-2">Cliente (opcional)<select value={sellClient} onChange={e=>setSellClient(e.target.value)}><option value="">Venda sem cadastro</option>{clients.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
+       <label>{payment==="crediario"?"Forma de pagamento":"Pagamento recebido"}<select value={payment} onChange={e=>setPayment(e.target.value)}><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option>{manager&&<option value="crediario">Conta do cliente / Crediário</option>}</select></label>
+       <label className="lz-span-2">{payment==="crediario"?"Cliente (obrigatória para crediário)":"Cliente (opcional)"}<select required={payment==="crediario"} value={sellClient} onChange={e=>setSellClient(e.target.value)}><option value="">{payment==="crediario"?"Selecione a cliente":"Venda sem cadastro"}</option>{clients.map(c=><option key={c.id} value={c.id}>{c.nome}</option>)}</select></label>
+       {payment==="crediario"&&manager&&<div className="lz-span-2 lz-crediario-installments">
+        <strong>Conta da cliente / Parcelamento</strong>
+        <p>A cliente leva as roupas agora. O estoque será baixado, mas o valor só entrará no caixa quando cada Pix for confirmado.</p>
+        <label>Quantidade de parcelas<select value={creditInstallments} onChange={e=>setCreditInstallments(e.target.value)}>
+         {[1,2,3,4,5,6].map(n=><option key={n} value={n}>{n} {n===1?"parcela":"parcelas"}</option>)}
+        </select></label>
+        <label>Primeiro vencimento<input type="date" required value={creditFirstDue} onChange={e=>setCreditFirstDue(e.target.value)}/></label>
+        <label>Intervalo entre parcelas<select value={creditDays} onChange={e=>setCreditDays(e.target.value)}>
+         <option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option>
+        </select></label>
+        <p className="lz-crediario-installments-summary">Total em aberto: {cash(Math.max(0,cartTotal-safeDiscount))} · {creditInstallments} {Number(creditInstallments)===1?"parcela":"parcelas"}</p>
+       </div>
        <label>Desconto (R$)<input type="number" min="0" max={cartTotal} step=".01" value={discount} onChange={e=>setDiscount(e.target.value)}/></label>
        <label className="lz-span-2">Observações<input value={sellNote} onChange={e=>setSellNote(e.target.value)} placeholder="Retirada, entrega, observações"/></label>
        <div className="lz-total lz-span-2"><span>Total da venda</span><strong>{cash(Math.max(0,cartTotal-safeDiscount))}</strong></div>
-       <button disabled={busy||cart.length===0} className="lz-btn lz-span-2">Confirmar venda e baixar estoque</button>
+       <button disabled={busy||cart.length===0||(payment==="crediario"&&!sellClient)} className="lz-btn lz-span-2">{payment==="crediario"?"Abrir conta da cliente e baixar estoque":"Confirmar venda e baixar estoque"}</button>
        <button type="button" disabled={busy||cart.length===0} className="lz-btn lz-outline lz-span-2" onClick={savePending}>Salvar pedido aguardando pagamento</button>
       </form>
-      <p className="lz-hint">Venda confirmada: baixa imediata. Pedido pendente: sem baixa e sem reserva; confirme a disponibilidade no pagamento. O sistema registra, mas não processa pagamentos.</p>
+      <p className="lz-hint">Venda confirmada: baixa imediata. Crediário: baixa imediata, sem lançar dinheiro antes de receber. Pedido pendente: sem baixa nem reserva. A LajuStore não verifica Pix automaticamente.</p>
      </section></div>
+     {manager&&<div className="lz-pdv-crediario-panel"><CrediarioPanel refreshKey={creditRefreshKey}/></div>}
      <section className="lz-panel lz-pdv-pending-panel"><div className="lz-section-head"><h2>Pedidos aguardando pagamento <span className="lz-chip">{pendentes.length}</span></h2>
       <label className="lz-payment-select">Canal
        <select value={pendingFilter} onChange={e=>setPendingFilter(e.target.value)}>
@@ -659,16 +675,16 @@ export default function LajuStoreV6(){
       </div>
      </section>
      <section className="lz-panel lz-pdv-sales-panel"><h2>Últimas vendas</h2><div className="lz-table-wrap"><table><thead><tr><th>Pedido</th><th>Data</th><th>Canal</th><th>Cliente</th><th>Pagamento</th><th>Total</th><th>Status</th>{manager&&<th>Ação</th>}</tr></thead><tbody>
-      {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
+      {orders.map(o=><tr key={o.id}><td>#{o.id}</td><td>{date(o.criado_em)}</td><td>{o.canal}</td><td>{o.cliente||"—"}</td><td>{o.forma_pagamento==="crediario"?"Conta da cliente":o.forma_pagamento||"—"}</td><td>{cash(o.total)}</td><td><span className={o.forma_pagamento==="crediario"&&o.status==="pago"?"lz-crediario-status":o.status==="pago"?"lz-good":"lz-danger"}>{o.forma_pagamento==="crediario"&&o.status==="pago"?"Crediário":o.status}</span></td>{manager&&<td>{o.status==="pago"&&<button className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar</button>}</td>}</tr>)}
       {orders.length===0&&<tr><td colSpan={8} className="lz-empty">Nenhuma venda registrada.</td></tr>}</tbody></table></div>
       <div className="lz-mobile-sales-cards">
        {orders.length===0?<p className="lz-mini-empty">Ainda não há vendas registradas.</p>:
         orders.map(o=><article key={o.id} className="lz-mobile-order-card">
          <div className="lz-mobile-order-head"><strong>Venda #{o.id}</strong><span>{cash(o.total)}</span></div>
-         <p>{date(o.criado_em)} · {o.canal} · {o.forma_pagamento||"Pagamento não informado"}</p>
+         <p>{date(o.criado_em)} · {o.canal} · {o.forma_pagamento==="crediario"?"Conta da cliente":o.forma_pagamento||"Pagamento não informado"}</p>
          <p>{o.cliente||"Cliente sem cadastro"}</p>
          <div className="lz-mobile-sales-footer">
-          <span className={o.status==="pago"?"lz-good":"lz-danger"}>{o.status}</span>
+          <span className={o.forma_pagamento==="crediario"&&o.status==="pago"?"lz-crediario-status":o.status==="pago"?"lz-good":"lz-danger"}>{o.forma_pagamento==="crediario"&&o.status==="pago"?"Crediário":o.status}</span>
           {manager&&o.status==="pago"&&<button type="button" className="lz-link lz-danger" onClick={()=>{if(window.confirm(`Cancelar a venda #${o.id}, devolver as peças ao estoque e lançar o estorno no financeiro?`))void run(async()=>{await api.post(`/api/v6/vendas/${o.id}/cancelar`);},"Venda cancelada e estoque devolvido.");}}>Cancelar venda</button>}
          </div>
         </article>)}
