@@ -7,6 +7,7 @@ import "./V6.css";
 import "./V8.css";
 import "./MobileFix.css";
 import "./MobilePdvClients.css";
+import "./Operacao.css";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
 type Variant = {id:number;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number};
@@ -19,6 +20,9 @@ type Entry = {id:number;tipo:"entrada"|"saida";categoria:string;descricao:string
 type User = {id:number;nome:string;role:"gestor"|"funcionario";ativo:boolean};
 type Movement = {id:number;criado_em:string;nome:string;sku:string;tamanho:string;cor:string;diferenca:number;motivo:string};
 type Report = {de:string;ate:string;totais:{vendas:number;bruto:string;descontos:string;faturamento:number;lucro_estimado:number};canais:{canal:string;vendas:number;total:string}[];maisVendidos:{nome:string;tamanho:string;cor:string;pecas:number}[];dias:{dia:string;vendas:number;bruto:string}[];nota:string};
+type EstoqueAlerta = {variante_id:number;produto_id:number;nome:string;sku:string;tamanho:string;cor:string;quantidade:number;minimo:number;faltam:number;esgotado:boolean};
+type EstoqueAlertas = {total:number;zerados:number;itens:EstoqueAlerta[];exibidos:number};
+type FinanceIndicators = {de:string;ate:string;vendas:number;faturamento:number;descontos:number;custo_pecas_conhecido:number;margem_vendas_estimada:number;despesas_operacionais:number;resultado_operacional_estimado:number;pecas_sem_custo:number;entradas_caixa:number;saidas_caixa:number;saldo_caixa:number;a_receber:number;a_pagar:number;aviso:string};
 type Dashboard = {produtos:number;pecas:number;alertas:number;vendas_hoje:number;faturamento_hoje:number;lucro_hoje_estimado:number;top:{nome:string;pecas:number}[]};
 type CartItem = {id:number;nome:string;sku:string;quantidade:number;preco:number};
 type Pending = {id:number;canal:string;cliente:string|null;criado_em:string;total:string;desconto:string;observacao:string|null;itens:{roupa:string;tamanho:string;cor:string;quantidade:number;preco_unitario:string;saldo_atual:number|null}[]};
@@ -29,7 +33,10 @@ const errorMessage=(e:unknown)=>{
  if(axios.isAxiosError(e)){if(e.response?.status===401)return "Sua sessão expirou. Saia e entre novamente.";return e.response?.data?.mensagem||"Falha de comunicação com a API da LajuStore.";}
  return e instanceof Error ? e.message : "Não foi possível concluir a operação.";
 };
-const today=()=>new Date().toISOString().slice(0,10);
+const dataComercial=(deltaDias=0)=>new Intl.DateTimeFormat("en-CA",{
+ timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"
+}).format(new Date(Date.now()+deltaDias*86400000));
+const today=()=>dataComercial();
 
 /** Link apenas para telefones brasileiros válidos; nenhum dado é enviado automaticamente. */
 const whatsappCliente=(telefone:string|null)=>{
@@ -94,7 +101,9 @@ export default function LajuStoreV6(){
  const [entries,setEntries]=useState<Entry[]>([]),[financeSummary,setFinanceSummary]=useState({entradas:0,saidas:0,pendentes:0});
  const [users,setUsers]=useState<User[]>([]),[movements,setMovements]=useState<Movement[]>([]);
  const [dashboard,setDashboard]=useState<Dashboard|null>(null),[report,setReport]=useState<Report|null>(null);
- const [rangeStart,setRangeStart]=useState(new Date(Date.now()-30*86400000).toISOString().slice(0,10));
+ const [stockAlerts,setStockAlerts]=useState<EstoqueAlertas|null>(null);
+ const [indicators,setIndicators]=useState<FinanceIndicators|null>(null);
+ const [rangeStart,setRangeStart]=useState(dataComercial(-29));
  const [rangeEnd,setRangeEnd]=useState(today());
 
  const [prodName,setProdName]=useState(""),[prodCategory,setProdCategory]=useState(""),[prodDesc,setProdDesc]=useState("");
@@ -119,7 +128,13 @@ export default function LajuStoreV6(){
  const refresh=useCallback(async()=>{
   setLoading(true);setError("");
   try{
-   if(tab==="inicio"){const {data}=await api.get<Dashboard>("/api/v6/dashboard");setDashboard(data);}
+   if(tab==="inicio"){
+    const [summary,alerts]=await Promise.all([
+     api.get<Dashboard>("/api/v6/dashboard"),
+     api.get<EstoqueAlertas>("/api/operacao/estoque/alertas")
+    ]);
+    setDashboard(summary.data);setStockAlerts(alerts.data);
+   }
    if(tab==="estoque"){
     const [a,b]=await Promise.all([api.get<Product[]>("/api/lajustore/produtos"),api.get<Movement[]>("/api/v6/movimentos")]);
     setProducts(a.data);setMovements(b.data);
@@ -129,12 +144,26 @@ export default function LajuStoreV6(){
     setProducts(a.data);setClients(b.data);setOrders(c.data);setPendentes(d.data);
    }
    if(tab==="clientes"){const {data}=await api.get<Client[]>("/api/lajustore/clientes");setClients(data);}
-   if(tab==="financeiro"&&manager){const {data}=await api.get("/api/v6/financeiro");setEntries(data.lancamentos);setFinanceSummary(data.resumo);}
+   if(tab==="financeiro"&&manager){
+    const [ledger,summary]=await Promise.all([
+     api.get("/api/v6/financeiro"),
+     api.get<FinanceIndicators>("/api/operacao/financeiro/indicadores",{
+      params:{de:dataComercial(-29),ate:dataComercial()}
+     })
+    ]);
+    setEntries(ledger.data.lancamentos);setFinanceSummary(ledger.data.resumo);setIndicators(summary.data);
+   }
    if(tab==="fornecedores"&&manager){
     const [a,b,c]=await Promise.all([api.get<Supplier[]>("/api/v6/fornecedores"),api.get<Purchase[]>("/api/v6/compras"),api.get<Product[]>("/api/lajustore/produtos")]);
     setSuppliers(a.data);setPurchases(b.data);setProducts(c.data);
    }
-   if(tab==="relatorios"&&manager){const {data}=await api.get<Report>("/api/v6/relatorios",{params:{de:rangeStart,ate:rangeEnd}});setReport(data);}
+   if(tab==="relatorios"&&manager){
+    const [reportResponse,summary]=await Promise.all([
+     api.get<Report>("/api/v6/relatorios",{params:{de:rangeStart,ate:rangeEnd}}),
+     api.get<FinanceIndicators>("/api/operacao/financeiro/indicadores",{params:{de:rangeStart,ate:rangeEnd}})
+    ]);
+    setReport(reportResponse.data);setIndicators(summary.data);
+   }
    if(tab==="config"&&manager){const {data}=await api.get<User[]>("/api/v6/usuarios");setUsers(data);}
   }catch(e){setError(errorMessage(e));}
   finally{setLoading(false);}
@@ -202,6 +231,20 @@ export default function LajuStoreV6(){
    ["Mais vendidos","Tamanho","Cor","Peças"],
    ...report.maisVendidos.map(p=>[p.nome,p.tamanho,p.cor,p.pecas])
   ]);
+ };
+ const exportCommercialData=async()=>{
+  if(!manager || busy)return;
+  setBusy(true);setError("");setNotice("");
+  try{
+   const {data}=await api.get<Blob>("/api/operacao/exportacao/dados-comerciais",{responseType:"blob"});
+   const url=URL.createObjectURL(data);
+   const link=document.createElement("a");
+   link.href=url;link.download=`lajustore-dados-${today()}.json`;
+   document.body.appendChild(link);link.click();link.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+   setNotice("Arquivo comercial exportado. Guarde-o com acesso restrito; ele não substitui um backup completo.");
+  }catch(e){setError(errorMessage(e));}
+  finally{setBusy(false);}
  };
  const signOut=()=>{logout();navigate("/");};
 
