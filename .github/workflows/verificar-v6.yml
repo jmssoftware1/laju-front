@@ -18,3 +18,4 @@ jobs:
       - run: node --test tests/v8-brand.test.mjs
       - run: node --test tests/mobile-fix.test.mjs
       - run: node --test tests/mobile-pdv-clientes.test.mjs
+      - run: node --test tests/operacao-entrega.test.mjs
