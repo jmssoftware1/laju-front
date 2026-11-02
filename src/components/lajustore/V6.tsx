@@ -253,7 +253,7 @@ export default function LajuStoreV6(){
   finally{setBusy(false);}
  };
  const openMonthlyReport=()=>{
-  if(!manager||!/^(20\\d{2})-(0[1-9]|1[0-2])$/.test(monthlyExport))return;
+  if(!manager||!/^(20\d{2})-(0[1-9]|1[0-2])$/.test(monthlyExport))return;
   navigate(`/lajustore/relatorio-mensal?mes=${monthlyExport}`);
  };
  const exportCommercialData=async()=>{
@@ -803,7 +803,7 @@ export default function LajuStoreV6(){
        <button className="lz-btn" disabled={busy}>Criar acesso</button></form></section>
      <section className="lz-panel"><h2>Permissões</h2><p><strong>Administradora:</strong> vendas, estoque, clientes, funcionários, fornecedores, financeiro e relatórios.</p>
       <p><strong>Funcionária:</strong> dashboard, consulta/cadastro de produtos, clientes e registro de vendas.</p>
-      <div className="lz-warning">Os arquivos Excel e PDF são cópias para consulta. **Não recuperam automaticamente o banco nem as contas de acesso.** Continue guardando backups completos do PostgreSQL e a exportação JSON.</div>
+      <div className="lz-warning">Os arquivos Excel e PDF são cópias para consulta. <strong>Não recuperam automaticamente o banco nem as contas de acesso.</strong> Continue guardando backups completos do PostgreSQL e a exportação JSON.</div>
       <div className="lz-export-actions">
        <button type="button" className="lz-btn lz-operation-export" disabled={busy} onClick={()=>void exportCommercialExcel()}>
         <span className="material-symbols-outlined" aria-hidden="true">table_view</span> Baixar planilha Excel completa (.xlsx)
