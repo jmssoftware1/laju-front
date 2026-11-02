@@ -7,7 +7,7 @@
 export function formatFinancialDate(value: unknown): string {
   if (typeof value !== "string") return "—";
 
-  const match = /^(\d{4})-(\d{2})-(\d{2})(?=$|[Tt ])/u.exec(value.trim());
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:[Tt ]\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})?)?$/u.exec(value.trim());
   if (!match) return "—";
 
   const year = Number(match[1]);
