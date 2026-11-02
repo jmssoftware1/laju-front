@@ -23,9 +23,14 @@ type Alerts={total:number;zerados:number;itens:Array<{
  variante_id:number;nome:string;tamanho:string;cor:string;quantidade:number;minimo:number
 }>};
 const currency=(value:unknown)=>Number(value||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const monthNow=()=>new Intl.DateTimeFormat("en-CA",{
- timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit"
-}).format(new Date());
+const monthNow=()=>{
+ const parts=new Intl.DateTimeFormat("en-CA",{
+  timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit"
+ }).formatToParts(new Date());
+ const year=parts.find(part=>part.type==="year")?.value;
+ const month=parts.find(part=>part.type==="month")?.value;
+ return `${year}-${month}`;
+};
 const formatDay=(iso:string)=>{
  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||"");
  return m?`${m[3]}/${m[2]}/${m[1]}`:"—";
