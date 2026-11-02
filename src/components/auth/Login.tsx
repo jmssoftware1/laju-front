@@ -11,6 +11,7 @@ import "./AuthV8.css";
 const Login: React.FC = () => {
   const [nome, setNome] = useState("");
   const [pin, setPin] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
   const { login, isAuthenticated } = useAuth();
@@ -37,6 +38,7 @@ const Login: React.FC = () => {
       navigate("/lajustore");
     } catch (error: any) {
       setPin("");
+      setMostrarSenha(false);
       setErro(
         error.response?.data?.mensagem || "Erro ao conectar com o servidor.",
       );
@@ -72,9 +74,33 @@ const Login: React.FC = () => {
 
           <div className="auth-field">
             <label htmlFor="input-senha">Senha de acesso</label>
-            <input id="input-senha" type="password" autoComplete="current-password" minLength={10}
-              placeholder="Digite sua senha" value={pin} onChange={e => setPin(e.target.value)}
-              disabled={carregando} required />
+            <div className="auth-password-control">
+              <input
+                id="input-senha"
+                type={mostrarSenha ? "text" : "password"}
+                autoComplete="current-password"
+                minLength={10}
+                placeholder="Digite sua senha"
+                value={pin}
+                onChange={e => setPin(e.target.value)}
+                disabled={carregando}
+                required
+              />
+              <button
+                type="button"
+                className="auth-password-toggle"
+                aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                aria-pressed={mostrarSenha}
+                aria-controls="input-senha"
+                title={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                onClick={() => setMostrarSenha(visible => !visible)}
+                disabled={carregando}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">
+                  {mostrarSenha ? "visibility_off" : "visibility"}
+                </span>
+              </button>
+            </div>
           </div>
 
           {erro && <div className="auth-erro">{erro}</div>}
