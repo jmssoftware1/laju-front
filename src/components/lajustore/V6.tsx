@@ -336,12 +336,17 @@ export default function LajuStoreV6(){
  };
  const sell=(e:FormEvent)=>{e.preventDefault();if(cart.length===0){setError("Adicione ao menos uma peça ao carrinho.");return;}
   if(safeDiscount<0||safeDiscount>cartTotal){setError("Desconto inválido.");return;}
+  const isCredit=payment==="crediario";
+  if(isCredit&&!manager){setError("Somente a administradora pode vender no crediário.");return;}
+  if(isCredit&&!sellClient){setError("Selecione uma cliente cadastrada para a conta em aberto.");return;}
+  if(isCredit&&(cartTotal-safeDiscount<=0)){setError("A venda no crediário precisa ter saldo a receber.");return;}
+  if(isCredit&&!window.confirm(`Confirmar entrega de ${cartCount} peças no crediário de ${clients.find(c=>c.id===Number(sellClient))?.nome||"cliente"} por ${cash(cartTotal-safeDiscount)}? O estoque será baixado agora, mas o caixa só receberá quando os pagamentos forem registrados.`))return;
   void run(async()=>{
-   const {data}=await api.post("/api/v6/vendas",{cliente_id:sellClient?Number(sellClient):null,canal:sellChannel,forma_pagamento:payment,desconto:safeDiscount,observacao:sellNote,
+   await api.post("/api/v6/vendas",{cliente_id:sellClient?Number(sellClient):null,canal:sellChannel,forma_pagamento:payment,desconto:safeDiscount,observacao:sellNote,
+    ...(isCredit?{numero_parcelas:Number(creditInstallments),primeiro_vencimento:creditFirstDue,intervalo_dias:Number(creditDays)}:{}),
     itens:cart.map(x=>({variante_id:x.id,quantidade:x.quantidade}))});
-   setCart([]);setDiscount("0");setSellNote("");setPdvMobileView("vendas");
-   setNotice(`Venda #${data.id} registrada!`);
-  },"Venda concluída e estoque atualizado.");
+   setCart([]);setDiscount("0");setSellNote("");setPayment("pix");setPdvMobileView(isCredit?"crediario":"vendas");
+  },isCredit?"Conta da cliente aberta. Estoque baixado, sem entrada antecipada no caixa. Registre os Pix quando recebê-los.":"Venda concluída e estoque atualizado.");
  };
  const savePending=()=>{
   if(!cart.length || safeDiscount<0 || safeDiscount>cartTotal){setError("Confira as peças e o desconto.");return;}
