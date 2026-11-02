@@ -24,3 +24,20 @@ test("a tela financeira usa o formatador e não acrescenta outro horário",async
   assert.match(source,/formatFinancialDate\(l\.data_movimento\)/);
   assert.doesNotMatch(source,/l\.data_movimento\s*\+\s*"T12:00:00"/);
 });
+
+test("datas diárias dos relatórios não recebem horário duplicado",async()=>{
+  const source=await fs.readFile(new URL("../src/components/lajustore/V6.tsx",import.meta.url),"utf8");
+  const monthly=await fs.readFile(new URL("../src/components/lajustore/MonthlyReport.tsx",import.meta.url),"utf8");
+
+  assert.match(source, /formatFinancialDate\(d\.dia\)/);
+  assert.doesNotMatch(source, /d\.dia\s*\+\s*"T12:00:00"/);
+  assert.match(source, /report\.dias\.map\(d=>\[formatFinancialDate\(d\.dia\)/);
+
+  assert.match(monthly, /formatFinancialDate\(d\.dia\)/);
+  assert.doesNotMatch(monthly, /const formatDay=/);
+
+  // O PostgreSQL pode devolver DATE como timestamp ISO, sem mudar o dia civil.
+  assert.equal(formatFinancialDate("2026-11-01T00:00:00.000Z"),"01/11/2026");
+  assert.equal(formatFinancialDate("2026-11-02T00:00:00.000Z"),"02/11/2026");
+  assert.equal(formatFinancialDate("2026-11-02"),"02/11/2026");
+});

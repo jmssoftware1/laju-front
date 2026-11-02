@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from "react";
 import {useNavigate} from "react-router-dom";
 import axios from "axios";
 import {api} from "../../utils/axios";
+import {formatFinancialDate} from "../../utils/formatFinancialDate";
 import {useAuth} from "../../context/AuthContext";
 import "./MonthlyReport.css";
 
@@ -31,10 +32,7 @@ const monthNow=()=>{
  const month=parts.find(part=>part.type==="month")?.value;
  return `${year}-${month}`;
 };
-const formatDay=(iso:string)=>{
- const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||"");
- return m?`${m[3]}/${m[2]}/${m[1]}`:"—";
-};
+
 const monthLabel=(value:string)=>{
  const [y,m]=value.split("-").map(Number);
  return new Intl.DateTimeFormat("pt-BR",{timeZone:"UTC",month:"long",year:"numeric"}).format(new Date(Date.UTC(y,m-1,1)));
@@ -141,7 +139,7 @@ export default function MonthlyReport(){
     <section className="monthly-section monthly-days">
      <div className="monthly-section-heading"><span>04</span><div><h2>Movimento por dia</h2><p>Histórico de vendas concluídas</p></div></div>
      <table><thead><tr><th>Data</th><th>Vendas</th><th>Valor bruto</th></tr></thead>
-      <tbody>{report.dias.length?report.dias.map(d=><tr key={d.dia}><td>{formatDay(d.dia)}</td><td>{d.vendas}</td><td>{currency(d.bruto)}</td></tr>):
+      <tbody>{report.dias.length?report.dias.map(d=><tr key={d.dia}><td>{formatFinancialDate(d.dia)}</td><td>{d.vendas}</td><td>{currency(d.bruto)}</td></tr>):
        <tr><td colSpan={3}>Nenhum registro nesse mês.</td></tr>}</tbody></table>
     </section>
     <section className="monthly-section">

@@ -232,7 +232,7 @@ export default function LajuStoreV6(){
     ["Peças sem custo cadastrado",indicators.pecas_sem_custo,"Saldo de caixa do período",String(indicators.saldo_caixa)]]:[]),
    [],
    ["Vendas por dia","Vendas","Bruto"],
-   ...report.dias.map(d=>[d.dia,d.vendas,String(d.bruto)]),
+   ...report.dias.map(d=>[formatFinancialDate(d.dia),d.vendas,String(d.bruto)]),
    [],
    ["Canal","Vendas","Faturamento"],
    ...report.canais.map(c=>[c.canal,c.vendas,String(c.total)]),
@@ -833,7 +833,7 @@ export default function LajuStoreV6(){
     </section>}
     <div className="lz-two"><section className="lz-panel"><h2>Vendas por canal</h2>{report?.canais.length?report.canais.map(c=><div className="lz-breakdown" key={c.canal}><div><strong>{c.canal}</strong><small>{c.vendas} vendas · {cash(c.total)}</small></div><div className="lz-bar"><span style={{width:`${Math.min(100,100*Number(c.total)/Math.max(1,...report.canais.map(x=>Number(x.total))))}%`}}/></div></div>):<div className="lz-empty">Sem vendas neste período.</div>}</section>
      <section className="lz-panel"><h2>Produtos mais vendidos</h2>{report?.maisVendidos.length?report.maisVendidos.map((p,i)=><div className="lz-top-product" key={`${p.nome}-${p.tamanho}-${p.cor}`}><span>{i+1}</span><strong>{p.nome}<small>{p.tamanho} · {p.cor}</small></strong><small>{p.pecas} peças</small></div>):<div className="lz-empty">Sem dados neste período.</div>}</section></div>
-    <section className="lz-panel"><h2>Vendas por dia</h2><div className="lz-table-wrap"><table><thead><tr><th>Dia</th><th>Vendas</th><th>Bruto</th></tr></thead><tbody>{report?.dias.map(d=><tr key={d.dia}><td>{date(d.dia+"T12:00:00")}</td><td>{d.vendas}</td><td>{cash(d.bruto)}</td></tr>)}{!report?.dias.length&&<tr><td colSpan={3} className="lz-empty">Sem registros no intervalo.</td></tr>}</tbody></table></div><p className="lz-hint">{report?.nota}</p></section>
+    <section className="lz-panel"><h2>Vendas por dia</h2><div className="lz-table-wrap"><table><thead><tr><th>Dia</th><th>Vendas</th><th>Bruto</th></tr></thead><tbody>{report?.dias.map(d=><tr key={d.dia}><td>{formatFinancialDate(d.dia)}</td><td>{d.vendas}</td><td>{cash(d.bruto)}</td></tr>)}{!report?.dias.length&&<tr><td colSpan={3} className="lz-empty">Sem registros no intervalo.</td></tr>}</tbody></table></div><p className="lz-hint">{report?.nota}</p></section>
    </div>}
 
    {tab==="config"&&manager&&<div className="lz-content">
