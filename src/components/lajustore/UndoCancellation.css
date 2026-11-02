@@ -1,0 +1,49 @@
+/* LajuStore V9 — restauração de cancelamento, desktop e celular. */
+.lz-shell .lz-undo-action{color:#95465a;font-weight:800;text-align:left;white-space:normal}
+.lz-shell .lz-undo-action:hover,.lz-shell .lz-undo-action:focus-visible{color:#702f42;text-decoration:underline}
+.lz-shell .lz-undo-overlay{
+ position:fixed;z-index:5000;inset:0;display:flex;align-items:center;justify-content:center;
+ padding:20px;background:rgba(39,26,34,.65);overflow:auto;
+}
+.lz-shell .lz-undo-dialog{
+ box-sizing:border-box;display:grid;gap:15px;max-height:min(90dvh,850px);
+ overflow-y:auto;overscroll-behavior:contain;width:min(100%,560px);
+ padding:25px;border-radius:17px;background:#fffcfa;color:#3f3037;
+ border:1px solid #edd4d7;box-shadow:0 26px 90px rgba(28,16,23,.27);
+}
+.lz-shell .lz-undo-heading{display:flex;align-items:center;gap:12px}
+.lz-shell .lz-undo-heading>.material-symbols-outlined{
+ display:grid;place-items:center;width:45px;height:45px;padding:8px;border-radius:14px;
+ background:#f8e5e6;font-size:25px;color:#9b4960;
+}
+.lz-shell .lz-undo-heading h2{margin:0 0 5px;font-size:21px;color:#4d3440}
+.lz-shell .lz-undo-heading p{margin:0;font-size:13px;color:#846c76}
+.lz-shell .lz-undo-dialog>p{margin:0;font-size:13px;line-height:1.55}
+.lz-shell .lz-undo-dialog .lz-undo-alert{
+ padding:13px;border:1px solid #eed2af;border-radius:11px;
+ background:#fff7eb;color:#79552b;font-size:12px;line-height:1.55;
+}
+.lz-shell .lz-undo-form{display:grid;gap:15px}
+.lz-shell .lz-undo-form>label:first-child{display:grid;gap:8px;font-size:13px;font-weight:700;color:#4e3944}
+.lz-shell .lz-undo-form textarea{
+ min-height:86px;width:100%;max-width:100%;box-sizing:border-box;
+ border:1px solid #ddc5ca;border-radius:10px;padding:12px;
+ font:inherit;font-weight:400;font-size:14px;color:#3c2c35;background:white;
+}
+.lz-shell .lz-undo-checkbox{
+ display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:10px;
+ background:#fff0ee;font-size:13px;line-height:1.5;font-weight:650;
+}
+.lz-shell .lz-undo-checkbox input{flex:none;width:20px;height:20px;margin:0;accent-color:#9a455c}
+.lz-shell .lz-undo-error{margin:0;border-radius:10px;padding:10px 12px;color:#9e263b;background:#ffeced;font-size:12px}
+.lz-shell .lz-undo-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lz-shell .lz-undo-actions button{min-height:45px;white-space:normal;padding:10px}
+.lz-shell .lz-undo-form :focus-visible{outline:2px solid #a34a63;outline-offset:2px}
+@media(max-width:600px){
+ .lz-shell .lz-undo-overlay{padding:12px;align-items:center}
+ .lz-shell .lz-undo-dialog{padding:17px;border-radius:14px}
+ .lz-shell .lz-undo-heading h2{font-size:17px}
+ .lz-shell .lz-undo-actions{grid-template-columns:1fr}
+ .lz-shell .lz-undo-actions button{width:100%}
+ .lz-shell .lz-undo-action{font-size:12px}
+}
