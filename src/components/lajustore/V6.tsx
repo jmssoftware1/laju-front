@@ -10,6 +10,7 @@ import "./V8.css";
 import "./MobileFix.css";
 import "./MobilePdvClients.css";
 import "./Operacao.css";
+import "./UndoCancellation.css";
 import CrediarioPanel from "./CrediarioPanel";
 
 type Tab = "inicio"|"estoque"|"pdv"|"clientes"|"financeiro"|"fornecedores"|"relatorios"|"config";
